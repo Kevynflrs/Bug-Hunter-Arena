@@ -1,8 +1,8 @@
-import { Schema, model, Document } from 'mongoose';
+import mongoose, { Schema, Document } from "mongoose";
 
 interface IQuestion extends Document {
   theme: string;
-  niveau: 'Facile' | 'Intermédiaire' | 'Difficile';
+  niveau: string;
   question: string;
   correction: string;
   explication: string;
@@ -10,14 +10,12 @@ interface IQuestion extends Document {
 
 const QuestionSchema = new Schema<IQuestion>({
   theme: { type: String, required: true },
-  niveau: { type: String, enum: ['Facile', 'Intermédiaire', 'Difficile'], required: true },
+  niveau: { type: String, required: true },
   question: { type: String, required: true },
   correction: { type: String, required: true },
-  explication: { type: String, required: true }
-}, {
-  timestamps: true
+  explication: { type: String, required: true },
 });
 
-const Question = model<IQuestion>('Question', QuestionSchema);
+const QuestionModel = mongoose.model<IQuestion>("Question", QuestionSchema);
 
-export default Question;
+export default QuestionModel;

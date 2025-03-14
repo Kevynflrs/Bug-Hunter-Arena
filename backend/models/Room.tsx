@@ -1,19 +1,17 @@
 import { Schema, model, Document } from 'mongoose';
 
 interface IRoom extends Document {
-  id: string;
   scores_a: number;
   scores_b: number;
   name: string;
-  connectionId: string;
+  connectionId: number;
 }
 
 const RoomSchema = new Schema<IRoom>({
-  id: { type: String, required: true, unique: true },
-  scores_a: { type: Number, required: true },
-  scores_b: { type: Number, required: true },
+  scores_a: { type: Number, required: true, default: 0 },
+  scores_b: { type: Number, required: true, default: 0 },
   name: { type: String, required: true },
-  connectionId: { type: String, required: true }
+  connectionId: { type: Number, required: true, min: 100000, max: 999999 }
 });
 
 const Room = model<IRoom>('Room', RoomSchema);
