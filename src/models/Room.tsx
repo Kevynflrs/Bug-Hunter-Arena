@@ -1,4 +1,4 @@
-import { Schema, model, models, Document } from 'mongoose';
+import { Schema, model, Document } from 'mongoose';
 
 interface IRoom extends Document {
   scores_a: number;
@@ -14,6 +14,6 @@ const RoomSchema = new Schema<IRoom>({
   connectionId: { type: Number, required: true, min: 100000, max: 999999 }
 });
 
-const Room = models.Room || model<IRoom>('Room', RoomSchema);
+const Room = model<IRoom>('Room', RoomSchema);
 
 export default Room;
