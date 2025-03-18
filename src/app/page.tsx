@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from 'next/image';
 
 const App = () => {
-  const [nickname, setNickname] = useState("AlQuaïda✌️");
+  const [nickname, setNickname] = useState("AlQuaïda🫰");
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-6">
