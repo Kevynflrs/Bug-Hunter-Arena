@@ -23,6 +23,7 @@ export async function POST(req: Request) {
     await newRoom.save();
     return NextResponse.json({ message: "Room créée avec succès !" }, { status: 201 });
   } catch (error) {
+    console.error(error);
     return NextResponse.json({ message: "Erreur lors de la création" }, { status: 500 });
   }
 }
