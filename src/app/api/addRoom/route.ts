@@ -1,13 +1,11 @@
 import { NextResponse } from "next/server";
-import mongoose from "mongoose";
+import { connectMongoDB } from "@/utils/db";
 import Room from "@/models/Room";
-
-if (!mongoose.connection.readyState) {
-    mongoose.connect(process.env.MONGODB_URI!);
-}
 
 export async function POST() {
   try {
+    await connectMongoDB();
+
     function generateRoomId(): string {
       const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
       let id = "";
@@ -16,10 +14,10 @@ export async function POST() {
       }
       return id;
     }
-    
+
     let connectionId: string = "";
     let exists = true;
-    
+
     while (exists) {
       connectionId = generateRoomId();
       exists = (await Room.exists({ connectionId })) !== null;
