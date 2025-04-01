@@ -6,22 +6,33 @@ if (!mongoose.connection.readyState) {
     mongoose.connect(process.env.MONGODB_URI!);
 }
 
-export async function POST(req: Request) {
+export async function POST() {
   try {
-    const { name } = await req.json();
-    if (!name) {
-      return NextResponse.json({ message: "Le nom est requis" }, { status: 400 });
+    function generateRoomId(): string {
+      const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+      let id = "";
+      for (let i = 0; i < 6; i++) {
+        id += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return id;
+    }
+    
+    let connectionId: string = "";
+    let exists = true;
+    
+    while (exists) {
+      connectionId = generateRoomId();
+      exists = (await Room.exists({ connectionId })) !== null;
     }
 
     const newRoom = new Room({
-      name,
-      scores_a: 0, // Valeurs par défaut
+      scores_a: 0,
       scores_b: 0,
-      connectionId: Math.floor(100000 + Math.random() * 900000), // ID aléatoire entre 100000 et 999999
+      connectionId: connectionId,
     });
 
     await newRoom.save();
-    return NextResponse.json({ message: "Room créée avec succès !" }, { status: 201 });
+    return NextResponse.json({ message: "Room créée avec succès !", connectionId }, { status: 201 });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ message: "Erreur lors de la création" }, { status: 500 });

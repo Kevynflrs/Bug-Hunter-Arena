@@ -1,6 +1,7 @@
 "use client"; // If using the Next.js App Router
 import React from "react";
 import { useEffect, useState } from "react";
+import { redirect } from 'next/navigation'
 import { useSearchParams } from "next/navigation";
 
 export default function Page() {
@@ -19,6 +20,11 @@ export default function Page() {
 
     const searchParams = useSearchParams();
     const connectionId = searchParams.get("id");
+    const nickname = searchParams.get("nickname");
+
+    const goHome = () => {
+        redirect("/");
+    }
 
 
     useEffect(() => {
@@ -46,11 +52,12 @@ export default function Page() {
                 <div className="rounded-2xl border-2 border-gray-200 p-4">
                     {/* Header row: Room Name + refresh icon */}
                     <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-xl font-semibold">{room ? room.name : "Loading..."}</h2>
+                        <h2 className="text-xl font-semibold">{nickname !="" ? nickname : "Loading..."}&#39;s room</h2>
                         <button
                             type="button"
                             className="text-gray-500 hover:text-gray-700"
                             title="Refresh"
+                            onClick={goHome}
                         >
                             ↻
                         </button>

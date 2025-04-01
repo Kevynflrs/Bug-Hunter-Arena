@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Image from 'next/image';
-import { redirect } from 'next/navigation';
+import { redirect } from 'next/navigation'
+import handleRoomCreation from "@/components/handle_room_creation";  
 
 const App = () => {
   const avatarList = [
@@ -47,6 +48,18 @@ const App = () => {
     redirect(`/room?id=${roomCode}`);
   };
 
+
+  const handleCreateRoom = async () => {
+
+    if (!nickname) {
+      alert("Veuillez entrer un surnom avant de créer une salle.");
+      return;
+    }
+    const roomId = await handleRoomCreation();
+    redirect(`/room?id=${roomId} &nickname=${nickname}`);
+  };
+
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-6">
       {/* Header */}
@@ -63,12 +76,11 @@ const App = () => {
           <Image src="/assets/img/RightArrow.png" alt="Join button" width={32} height={32} />
           <span>Rejoindre une Partie</span>
         </button>
-        <a href="/create-room">
-          <button className="w-full py-3 text-lg font-semibold rounded-2xl border-1 border-gray-300 hover:bg-gray-100 flex items-center gap-2 pl-[25%]">
-            <Image src="/assets/img/Add.png" alt="Add button" width={32} height={32} />
-            <span>Crée une Partie</span>
-          </button>
-        </a>
+        <button className="w-full py-3 text-lg font-semibold rounded-2xl border-1 border-gray-300 hover:bg-gray-100"
+          onClick={handleCreateRoom}
+        >
+          ➕ Crée une Partie
+        </button>
       </div>
 
       {/* Main Section */}
@@ -138,6 +150,6 @@ const App = () => {
       )}
     </div>
   );
-};
+}
 
 export default App;
