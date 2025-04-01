@@ -8,7 +8,6 @@ export const connectMongoDB = async (): Promise<void> => {
   if (mongoose.connection.readyState === 0) {
     try {
       await mongoose.connect(process.env.MONGODB_URI!);
-      console.log("Connected to MongoDB");
     } catch (error) {
       console.error("Error connecting to MongoDB:", error);
       throw error;
@@ -29,7 +28,6 @@ export const connectRedis = async (): Promise<RedisClientType> => {
       });
 
       await redisClient.connect();
-      console.log("Connected to Redis");
     } catch (error) {
       console.error("Error connecting to Redis:", error);
       throw error;
