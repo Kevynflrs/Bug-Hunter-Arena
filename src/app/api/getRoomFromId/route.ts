@@ -1,10 +1,6 @@
 import { NextResponse } from "next/server";
-import mongoose from "mongoose";
+import { connectMongoDB } from "@/utils/db";
 import Room from "@/models/Room";
-
-if (!mongoose.connection.readyState) {
-    await mongoose.connect(process.env.MONGODB_URI!);
-}
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
@@ -15,6 +11,8 @@ export async function GET(request: Request) {
     }
 
     try {
+        await connectMongoDB();
+
         const room = await Room.findOne({ connectionId });
         if (!room) {
             return NextResponse.json({ error: "Room not found" }, { status: 404 });
@@ -22,7 +20,7 @@ export async function GET(request: Request) {
 
         return NextResponse.json(room);
     } catch (error) {
-        console.log(error);
+        console.error("Error:", error);
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }
