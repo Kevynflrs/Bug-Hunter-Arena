@@ -8,16 +8,25 @@ if (!mongoose.connection.readyState) {
 
 export async function POST() {
   try {
-    let connectionId;
-    let existingRoom;
-
-    do {
-      connectionId = Math.floor(100000 + Math.random() * 900000);
-      existingRoom = await Room.findOne({ connectionId });
-    } while (existingRoom);
+    function generateRoomId(): string {
+      const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+      let id = "";
+      for (let i = 0; i < 6; i++) {
+        id += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return id;
+    }
+    
+    let connectionId: string = "";
+    let exists = true;
+    
+    while (exists) {
+      connectionId = generateRoomId();
+      exists = (await Room.exists({ connectionId })) !== null;
+    }
 
     const newRoom = new Room({
-      scores_a: 0, // Valeurs par défaut
+      scores_a: 0,
       scores_b: 0,
       connectionId: connectionId,
     });
