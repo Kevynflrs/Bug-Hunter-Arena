@@ -1,6 +1,7 @@
 "use client"; // If using the Next.js App Router
 import React from "react";
 import { useEffect, useState } from "react";
+import { redirect } from 'next/navigation'
 import { useSearchParams } from "next/navigation";
 
 export default function Page() {
@@ -20,6 +21,10 @@ export default function Page() {
     const searchParams = useSearchParams();
     const connectionId = searchParams.get("id");
     const nickname = searchParams.get("nickname");
+
+    const goHome = () => {
+        redirect("/");
+    }
 
 
     useEffect(() => {
@@ -52,6 +57,7 @@ export default function Page() {
                             type="button"
                             className="text-gray-500 hover:text-gray-700"
                             title="Refresh"
+                            onClick={goHome}
                         >
                             ↻
                         </button>
