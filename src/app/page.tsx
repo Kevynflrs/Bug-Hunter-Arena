@@ -73,7 +73,7 @@ const App = () => {
     <div className="flex flex-col items-center justify-center min-h-screen p-6">
       {/* Header */}
       <header className="flex flex-col items-center mb-6">
-        <Image src="/logo_bug_hunter.png" alt="Bug Hunter Arena Logo" width={150} height={200} />
+        <Image src="/assets/img/logo_bug_hunter.png" alt="Bug Hunter Arena Logo" width={150} height={200} />
       </header>
 
       {/* Buttons */}
@@ -126,9 +126,9 @@ const App = () => {
           <h2 className="text-lg font-bold text-gray-700 mb-4">Comment Jouer ?</h2>
           <Carousel
             images={[
-              "/Group 1.png",
-              "/data.png",
-              "/success.png",
+              "/assets/img/Group 1.png",
+              "/assets/img/data.png",
+              "/assets/img/success.png",
             ]}
             texts={[
               "Chaque équipe désigne un expert en PHP, JavaScript (ReactJS), C++, C# et mobile.",
