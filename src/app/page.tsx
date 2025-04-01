@@ -33,7 +33,7 @@ const App = () => {
       return;
     }
     const roomId = await handleRoomCreation();
-    redirect('/room?id=' + roomId);
+    redirect(`/room?id=${roomId} &nickname=${nickname}`);
   };
 
 
