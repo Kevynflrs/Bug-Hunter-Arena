@@ -3,9 +3,10 @@
 import { useState } from "react";
 import Image from 'next/image';
 import { redirect } from 'next/navigation'
+import handleSubmit from "@/components/create_room";  
 
 const App = () => {
-  const [nickname, setNickname] = useState("AlQuaïda🫰");
+  const [nickname, setNickname] = useState("");
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [roomCode, setRoomCode] = useState("");
 
@@ -24,6 +25,18 @@ const App = () => {
     redirect(`/room?id=${roomCode}`);
   };
 
+
+  const handleCreateRoom = () => {
+
+    if (!nickname) {
+      alert("Please enter a nickname before creating a room.");
+      return;
+    }
+    const roomId = handleSubmit()
+    redirect('/create-room?id=' + roomId);
+  };
+
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-6">
       {/* Header */}
@@ -40,11 +53,11 @@ const App = () => {
         >
           ➡ Rejoindre une Partie
         </button>
-        <a href="/create-room">
-          <button className="w-full py-3 text-lg font-semibold rounded-2xl border-1 border-gray-300 hover:bg-gray-100">
-            ➕ Crée une Partie
-          </button>
-        </a>
+        <button className="w-full py-3 text-lg font-semibold rounded-2xl border-1 border-gray-300 hover:bg-gray-100"
+          onClick={handleCreateRoom}
+        >
+          ➕ Crée une Partie
+        </button>
       </div>
 
       {/* Main Section */}
