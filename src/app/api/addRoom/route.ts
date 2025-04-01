@@ -16,6 +16,7 @@ export async function POST(req: Request) {
     let connectionId;
     let existingRoom;
 
+    // À optimiser
     do {
       connectionId = Math.floor(100000 + Math.random() * 900000);
       existingRoom = await Room.findOne({ connectionId });
@@ -23,7 +24,7 @@ export async function POST(req: Request) {
 
     const newRoom = new Room({
       name,
-      scores_a: 0, // Valeurs par défaut
+      scores_a: 0,
       scores_b: 0,
       connectionId: connectionId,
     });
