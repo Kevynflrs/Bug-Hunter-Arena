@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from 'next/image';
 import { redirect } from 'next/navigation'
-import handleSubmit from "@/components/create_room";  
+import handleRoomCreation from "@/components/handle_room_creation";  
 
 const App = () => {
   const [nickname, setNickname] = useState("");
@@ -26,14 +26,14 @@ const App = () => {
   };
 
 
-  const handleCreateRoom = () => {
+  const handleCreateRoom = async () => {
 
     if (!nickname) {
-      alert("Please enter a nickname before creating a room.");
+      alert("Veuillez entrer un surnom avant de créer une salle.");
       return;
     }
-    const roomId = handleSubmit()
-    redirect('/create-room?id=' + roomId);
+    const roomId = await handleRoomCreation();
+    redirect('/room?id=' + roomId);
   };
 
 

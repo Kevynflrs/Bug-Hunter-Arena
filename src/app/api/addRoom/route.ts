@@ -6,13 +6,8 @@ if (!mongoose.connection.readyState) {
     mongoose.connect(process.env.MONGODB_URI!);
 }
 
-export async function POST(req: Request) {
+export async function POST() {
   try {
-    const { name } = await req.json();
-    if (!name) {
-      return NextResponse.json({ message: "Le nom est requis" }, { status: 400 });
-    }
-
     let connectionId;
     let existingRoom;
 
@@ -22,7 +17,6 @@ export async function POST(req: Request) {
     } while (existingRoom);
 
     const newRoom = new Room({
-      name,
       scores_a: 0, // Valeurs par défaut
       scores_b: 0,
       connectionId: connectionId,
