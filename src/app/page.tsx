@@ -1,14 +1,38 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from 'next/image';
 import { redirect } from 'next/navigation'
 import handleRoomCreation from "@/components/handle_room_creation";  
 
 const App = () => {
+  const avatarList = [
+    "/assets/avatar/cat.png",
+    "/assets/avatar/dog.png",
+    "/assets/avatar/rabbit.png",
+    "/assets/avatar/cow.png",
+    "/assets/avatar/elephant.png",
+    "/assets/avatar/monkey.png",
+    "/assets/avatar/frog.png",
+    "/assets/avatar/panda.png",
+    "/assets/avatar/pig.png",
+  ];
+
+  const [avatar, setAvatar] = useState(""); // Initialiser avec une chaîne vide
   const [nickname, setNickname] = useState("");
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [roomCode, setRoomCode] = useState("");
+
+  // Initialiser l'avatar uniquement côté client
+  useEffect(() => {
+    const randomAvatar = avatarList[Math.floor(Math.random() * avatarList.length)];
+    setAvatar(randomAvatar);
+  }, []);
+
+  const handleReloadAvatar = () => {
+    const randomAvatar = avatarList[Math.floor(Math.random() * avatarList.length)];
+    setAvatar(randomAvatar);
+  };
 
   const handleJoinGame = () => {
     setIsPopupOpen(true);
@@ -20,7 +44,6 @@ const App = () => {
   };
 
   const handleRoomCodeSubmit = () => {
-    // Add logic to handle room code submission
     setIsPopupOpen(false);
     redirect(`/room?id=${roomCode}`);
   };
@@ -41,17 +64,17 @@ const App = () => {
     <div className="flex flex-col items-center justify-center min-h-screen p-6">
       {/* Header */}
       <header className="flex flex-col items-center mb-6">
-        <Image src="/logo_bug_hunter.png" alt="Bug Hunter Arena Logo" width={48} height={48} className="w-12 mb-2" />
-        <h1 className="text-xl font-bold">Bug Hunter Arena</h1>
+        <Image src="/logo_bug_hunter.png" alt="Bug Hunter Arena Logo" width={150} height={200} />
       </header>
 
       {/* Buttons */}
       <div className="w-full max-w-md flex flex-col gap-4">
         <button
-          className="w-full py-3 text-lg font-semibold rounded-2xl border-1 border-gray-300 hover:bg-gray-100"
+          className="w-full py-3 text-lg font-semibold rounded-2xl border-1 border-gray-300 hover:bg-gray-100 flex items-center gap-2 pl-[25%]"
           onClick={handleJoinGame}
         >
-          ➡ Rejoindre une Partie
+          <Image src="/assets/img/RightArrow.png" alt="Join button" width={32} height={32} />
+          <span>Rejoindre une Partie</span>
         </button>
         <button className="w-full py-3 text-lg font-semibold rounded-2xl border-1 border-gray-300 hover:bg-gray-100"
           onClick={handleCreateRoom}
@@ -63,18 +86,27 @@ const App = () => {
       {/* Main Section */}
       <div className="mt-8 flex flex-col md:flex-row gap-6 w-full max-w-2xl">
         {/* Character Selection */}
-        <div className="flex flex-col items-center p-6 bg-white rounded-lg shadow-md w-full md:w-1/2">
-          <div className="w-16 h-16 bg-gray-300 rounded-full flex items-center justify-center mb-3"></div>
-          <p className="text-sm font-medium text-gray-600">Choisir un personnage et un surnom</p>
+        <div className="flex flex-col items-center justify-center p-6 bg-white rounded-lg shadow-md w-full md:w-1/2">
+          <div className="flex items-center gap-4 mb-3">
+            <div className="relative w-16 h-16 rounded-full flex items-center justify-center">
+              {avatar && (
+                <Image src={avatar} alt="Avatar" className="rounded-full object-cover" width={64} height={64} />
+              )}
+              <div
+                className="absolute bottom-0 right-0 w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-md cursor-pointer"
+                onClick={handleReloadAvatar}
+              >
+                <Image src="/assets/img/reload.png" alt="Reload" width={15} height={15} />
+              </div>
+            </div>
+            <p className="text-sm font-medium text-gray-600 text-center">Choisir un personnage et un surnom</p>
+          </div>
           <input
             type="text"
-            value={nickname}
+            placeholder="Pseudo"
             onChange={(e) => setNickname(e.target.value)}
             className="w-full mt-2 p-2 border rounded-md text-center"
           />
-          <button className="mt-3 py-2 px-4 bg-yellow-400 rounded-md font-semibold hover:bg-yellow-500">
-            ✔ Validée
-          </button>
         </div>
 
         {/* Instructions */}
