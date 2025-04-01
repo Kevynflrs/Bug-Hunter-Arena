@@ -76,11 +76,12 @@ const App = () => {
           <Image src="/assets/img/RightArrow.png" alt="Join button" width={32} height={32} />
           <span>Rejoindre une Partie</span>
         </button>
-        <button className="w-full py-3 text-lg font-semibold rounded-2xl border-1 border-gray-300 hover:bg-gray-100"
-          onClick={handleCreateRoom}
-        >
-          ➕ Crée une Partie
-        </button>
+        <a href="/create-room">
+          <button className="w-full py-3 text-lg font-semibold rounded-2xl border-1 border-gray-300 hover:bg-gray-100 flex items-center gap-2 pl-[25%]">
+            <Image src="/assets/img/Add.png" alt="Add button" width={32} height={32} />
+            <span>Crée une Partie</span>
+          </button>
+        </a>
       </div>
 
       {/* Main Section */}
