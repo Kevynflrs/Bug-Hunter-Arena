@@ -143,7 +143,7 @@ const App = () => {
       {/* Footer */}
       <footer className="mt-8 text-center text-gray-600">
         <p>© 2025 Bug Hunter Arena. Tous droits réservés.</p>
-        <p>Développé par l'équipe de Bug Hunter Arena.</p>
+        <p>Développé par l&apos;équipe de Bug Hunter Arena.</p>
       </footer>
 
       {/* Popup Modal */}
