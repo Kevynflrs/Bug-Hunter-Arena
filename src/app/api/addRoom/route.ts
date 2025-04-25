@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import Room from "@/models/Room";
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
+    const { name } = await request.json(); // Retrieve the name from the request body
+
     function generateRoomId(): string {
       const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
       let id = "";
@@ -23,6 +25,7 @@ export async function POST() {
     const newRoom = new Room({
       scores_a: 0,
       scores_b: 0,
+      name: name,
       connectionId: connectionId,
     });
 

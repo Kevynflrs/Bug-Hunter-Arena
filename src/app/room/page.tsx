@@ -15,9 +15,6 @@ export default function Page() {
     
 
     const [room, setRoom] = useState<IRoom | null>(null);
-
-    
-
     const searchParams = useSearchParams();
     const connectionId = searchParams.get("id");
     const nickname = searchParams.get("nickname");
@@ -52,7 +49,7 @@ export default function Page() {
                 <div className="rounded-2xl border-2 border-gray-200 p-4">
                     {/* Header row: Room Name + refresh icon */}
                     <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-xl font-semibold">{nickname !="" ? nickname : "Loading..."}&#39;s room</h2>
+                        <h2 className="text-xl font-semibold">{room?.name != null ? room.name : "Loading..."}&#39;s room</h2>
                         <button
                             type="button"
                             className="text-gray-500 hover:text-gray-700"
