@@ -58,15 +58,16 @@ const App = () => {
 
   const handleRoomCodeSubmit = () => {
     setIsPopupOpen(false);
-    redirect(`/room?id=${roomCode}`);
+    // Ajouter également l'avatar ici
+    redirect(`/room?id=${roomCode}&nickname=${encodeURIComponent(nickname)}&avatar=${encodeURIComponent(avatar)}`);
   };
 
   const handleCreateRoom = async () => {
     // Si aucun pseudo n'est fourni, attribuer un nom aléatoire
     const finalNickname = nickname || defaultNames[Math.floor(Math.random() * defaultNames.length)];
-
     const roomId = await handleRoomCreation();
-    redirect(`/room?id=${roomId}&nickname=${finalNickname}`);
+    // Ajouter l'avatar à l'URL de redirection
+    redirect(`/room?id=${roomId}&nickname=${encodeURIComponent(finalNickname)}&avatar=${encodeURIComponent(avatar)}`);
   };
 
   return (

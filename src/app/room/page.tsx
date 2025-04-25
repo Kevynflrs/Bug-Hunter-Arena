@@ -249,6 +249,16 @@ export default function Page() {
                                 </div>
                             </div>
                         </div>
+
+                        {/* Bouton pour lancer la partie */}
+                        <div className="mt-6 flex justify-center">
+                            <button
+                                onClick={() => redirect("/in-game")}
+                                className="py-3 px-6 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600"
+                            >
+                                Lancer la Partie
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
