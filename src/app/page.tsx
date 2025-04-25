@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import Image from 'next/image';
 import { redirect } from 'next/navigation';
 import handleRoomCreation from "@/components/handle_room_creation";
+import { useRouter } from 'next/navigation';
 
 const App = () => {
   const avatarList = [
@@ -36,6 +37,8 @@ const App = () => {
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [roomCode, setRoomCode] = useState("");
 
+  const router = useRouter();
+
   // Initialiser l'avatar uniquement côté client
   useEffect(() => {
     const randomAvatar = avatarList[Math.floor(Math.random() * avatarList.length)];
@@ -50,16 +53,41 @@ const App = () => {
   const handleJoinGame = () => {
     setIsPopupOpen(true);
   };
+  
+    const handleRoomCodeSubmit = async () => {
+    if (!roomCode) {
+      alert("Veuillez entrer un code de salle.");
+      return;
+    }
+  
+    try {
+      const response = await fetch(`/api/joinGame?id=${roomCode}`);
+      if (!response.ok) {
+        throw new Error("La salle n'existe pas.");
+      }
+  
+      const data = await response.json();
+  
+      // Récupère le connectionId et le stocke dans roomCode
+      const { connectionId } = data.room;
+      setRoomCode(connectionId);
+  
+      router.push(`/room?id=${connectionId}&nickname=${nickname || "user"}`);
+    } catch (error) {
+      console.error("Erreur lors de la tentative de rejoindre la salle :", error);
+      alert("Impossible de rejoindre la salle. Vérifiez le code et réessayez.");
+    }
+  };
 
   const handlePopupClose = () => {
     setIsPopupOpen(false);
     setRoomCode("");
   };
 
-  const handleRoomCodeSubmit = () => {
-    setIsPopupOpen(false);
-    redirect(`/room?id=${roomCode}`);
-  };
+  // const handleRoomCodeSubmit = () => {
+  //   setIsPopupOpen(false);
+  //   redirect(`/room?id=${roomCode}`);
+  // };
 
   const handleCreateRoom = async () => {
     // Si aucun pseudo n'est fourni, attribuer un nom aléatoire
