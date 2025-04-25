@@ -3,6 +3,7 @@ import React from "react";
 import { useEffect, useState } from "react";
 import { redirect } from "next/navigation";
 import { useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation"; // Remplacez l'importation
 
 export default function Page() {
   interface IRoom extends Document {
@@ -17,9 +18,10 @@ export default function Page() {
   const searchParams = useSearchParams();
   const connectionId = searchParams.get("id");
   const nickname = searchParams.get("nickname");
+  const router = useRouter();
 
   const goHome = () => {
-    redirect("/");
+    router.push("/");
   };
 
   function getLanguages() {
@@ -220,107 +222,136 @@ export default function Page() {
           </div>
 
           {/* Paramètre de Jeu */}
-                  <div className="rounded-2xl border-2 border-gray-200 p-4">
-          <div className="flex items-center mb-4 space-x-2">
-            <h2 className="text-xl font-semibold">Paramètre de Jeu</h2>
-            <img
-              src="/assets/img/setting.png"
-              alt="Settings"
-              className="w-7 h-7"
-            />
-          </div>
-          {/* Gray line */}
-          <hr className="border-gray-200 mb-4" />
-        
-          {/* Conteneur avec espacement uniforme */}
-          <div className="space-y-4">
-            {/* Delete button */}
-            <button
-              type="button"
-              className="text-red-500 hover:text-red-700 flex items-center"
-              onClick={() => {
-                if (confirm("Are you sure you want to delete this game?")) {
-                  // Add your delete logic here
-                  console.log("Game deleted");
-                }
-              }}
-            >
-              <span className="mr-2">Supprimer la game</span>
+          <div className="rounded-2xl border-2 border-gray-200 p-4">
+            <div className="flex items-center mb-4 space-x-2">
+              <h2 className="text-xl font-semibold">Paramètre de Jeu</h2>
               <img
-                src="/assets/img/trash.png"
-                alt="Delete Game"
-                className="w-6 h-6"
-              />
-            </button>
-        
-            {/* Durée des manches */}
-            <div className="flex items-center space-x-4">
-              <label htmlFor="duree" className="font-medium">
-                Durée des manches (en Secondes)
-              </label>
-              <input
-                id="duree"
-                type="number"
-                defaultValue={260}
-                className="border border-gray-300 rounded-lg px-3 py-1 w-32"
+                src="/assets/img/setting.png"
+                alt="Settings"
+                className="w-7 h-7"
               />
             </div>
-        
-            {/* Difficulté */}
-            <div className="mb-4 flex items-center space-x-4">
-              <p className="font-medium">Difficulté</p>
-              <div className="flex items-center space-x-2">
-                {["1", "2", "3"].map((level) => (
-                  <label
-                    key={level}
-                    className="flex items-center justify-center w-10 h-10 border border-gray-300 rounded-lg cursor-pointer text-md font-semibold"
-                  >
-                    <input
-                      type="radio"
-                      name="difficulty"
-                      className="hidden"
-                      onChange={(e) => {
-                        e.target.parentElement?.classList.add("bg-gray-300");
-                        document
-                          .querySelectorAll('input[name="difficulty"]')
-                          .forEach((input) => {
-                            if (input !== e.target) {
-                              input.parentElement?.classList.remove(
-                                "bg-gray-300"
-                              );
-                            }
-                          });
-                      }}
-                    />
-                    {level}
-                  </label>
-                ))}
-              </div>
-            </div>
+            {/* Gray line */}
+            <hr className="border-gray-200 mb-4" />
 
-            {/* Langages */}
-            <div>
-              <p className="font-medium mb-2">Langages :</p>
-              <div className="grid grid-cols-3 gap-4">
-                {getLanguages().map((lang) => (
-                  <div
-                    key={lang.id}
-                    className="flex items-center space-x-3 p-1"
-                  >
-                    <label htmlFor={lang.id} className="">
-                      {lang.label}
-                    </label>
-                    <input
-                      type="checkbox"
-                      id={lang.id}
-                      className="w-5 h-5 cursor-pointer"
-                    />
-                  </div>
-                ))}
+            {/* Conteneur avec espacement uniforme */}
+            <div className="space-y-4">
+              {/* Durée des manches */}
+              <div className="flex items-center space-x-4">
+                <label htmlFor="duree" className="font-medium">
+                  Durée des manches (en Secondes)
+                </label>
+                <input
+                  id="duree"
+                  type="number"
+                  defaultValue={260}
+                  className="border border-gray-300 rounded-lg px-3 py-1 w-32"
+                />
               </div>
+
+              {/* Difficulté */}
+              <div className="mb-4 flex items-center space-x-4">
+                <p className="font-medium">Difficulté</p>
+                <div className="flex items-center space-x-2">
+                  {["1", "2", "3"].map((level) => (
+                    <label
+                      key={level}
+                      className="flex items-center justify-center w-10 h-10 border border-gray-300 rounded-lg cursor-pointer text-md font-semibold"
+                    >
+                      <input
+                        type="radio"
+                        name="difficulty"
+                        className="hidden"
+                        onChange={(e) => {
+                          e.target.parentElement?.classList.add("bg-gray-300");
+                          document
+                            .querySelectorAll('input[name="difficulty"]')
+                            .forEach((input) => {
+                              if (input !== e.target) {
+                                input.parentElement?.classList.remove(
+                                  "bg-gray-300"
+                                );
+                              }
+                            });
+                        }}
+                      />
+                      {level}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Langages */}
+              <div>
+                <p className="font-medium mb-2">Langages :</p>
+                <div className="grid grid-cols-3 gap-4">
+                  {getLanguages().map((lang) => (
+                    <div
+                      key={lang.id}
+                      className="flex items-center space-x-3 p-1"
+                    >
+                      <label htmlFor={lang.id} className="">
+                        {lang.label}
+                      </label>
+                      <input
+                        type="checkbox"
+                        id={lang.id}
+                        className="w-5 h-5 cursor-pointer"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Delete button */}
+              <button
+                type="button"
+                className="text-red-500 hover:text-red-700 flex items-center"
+                onClick={async () => {
+                  if (
+                    confirm("Êtes-vous sûr de vouloir supprimer cette partie ?")
+                  ) {
+                    try {
+                      const response = await fetch(`/api/deleteRoom`, {
+                        method: "POST",
+                        headers: {
+                          "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({ id: connectionId }),
+                      });
+
+                      if (!response.ok) {
+                        const errorData = await response.json();
+                        console.error("Erreur API :", errorData);
+                        throw new Error(
+                          errorData.message ||
+                            "Échec de la suppression de la salle"
+                        );
+                      }
+
+                      alert("Partie supprimée avec succès !");
+                      router.push("/");
+                    } catch (error) {
+                      console.error(
+                        "Erreur lors de la suppression de la salle :",
+                        error
+                      );
+                      alert(
+                        "Une erreur s'est produite lors de la suppression de la partie."
+                      );
+                    }
+                  }
+                }}
+              >
+                <span className="mr-2">Supprimer la partie</span>
+                <img
+                  src="/assets/img/trash.png"
+                  alt="Supprimer la partie"
+                  className="w-6 h-6"
+                />
+              </button>
             </div>
           </div>
-        </div>
         </div>
       </div>
     </div>
