@@ -58,6 +58,30 @@ app.prepare().then(async () => {
         // Handle saving content logic here
       });
 
+      socket.on('join_room', async (roomId) => {
+        console.log(`User ${socket.id} joining room: ${roomId}`);
+        socket.join(roomId);
+
+        // Notify the user that they have joined the room
+        socket.emit('room_joined', roomId);
+
+        // Notify other users in the room that a new user has joined
+        socket.to(roomId).emit('user_joined', socket.id);
+
+        // Handle team selection
+        socket.on('choose_team', (team) => {
+          if (team === 'red' || team === 'blue') {
+            console.log(`User ${socket.id} chose team: ${team} in room: ${roomId}`);
+            
+            // Notify all users in the room about the team choice
+            io.to(roomId).emit('team_chosen', { userId: socket.id, team });
+          } else {
+            console.log(`Invalid team choice by user ${socket.id}: ${team}`);
+            socket.emit('invalid_team', 'Please choose either "red" or "blue".');
+          }
+        });
+      });
+
       socket.on('disconnect', (reason) => {
         console.log(`User disconnected: ${socket.id}, Reason: ${reason}`);
       });

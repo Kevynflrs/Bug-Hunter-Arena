@@ -73,6 +73,19 @@ export default function Page() {
         socket.on("connect", onConnect);
         socket.on("disconnect", onDisconnect);
 
+        socket.emit("join_room", connectionId); // Emit join_room event with connectionId and name
+
+        socket.emit('choose_team', 'red');
+
+        socket.on('team_chosen', ({ userId, team }) => {
+            console.log(`User ${userId} joined team ${team}`);
+        });
+
+
+        socket.on('invalid_team', (message) => {
+            console.error(message);
+        });
+
         // Ensure the socket disconnects when the component unmounts
         return () => {
             console.log("Cleaning up socket connection...");
@@ -81,7 +94,7 @@ export default function Page() {
             socket.off("assign_uuid");
             socket.disconnect(); // Explicitly disconnect the socket
         };
-    }, [name,connectionId]);
+    }, [name, connectionId]);
 
     return (
         <div className="min-h-screen flex items-center justify-center p-4">
@@ -114,59 +127,12 @@ export default function Page() {
                             />
                             <span>AlQuaida 🪖</span>
                         </div>
-                        <div className="flex items-center space-x-2 mb-2">
-                            <img
-                                src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
-                                alt="profile"
-                                className="w-6 h-6 rounded-full bg-gray-300 border"
-                            />
-                            <span>McGrégor</span>
-                        </div>
-                        <div className="flex items-center space-x-2 mb-2">
-                            <img
-                                src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
-                                alt="profile"
-                                className="w-6 h-6 rounded-full bg-gray-300 border"
-                            />
-                            <span>PingPong</span>
-                        </div>
-                        <div className="flex items-center space-x-2 mb-2">
-                            <img
-                                src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
-                                alt="profile"
-                                className="w-6 h-6 rounded-full bg-gray-300 border"
-                            />
-                            <span>9/11</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                            <img
-                                src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
-                                alt="profile"
-                                className="w-6 h-6 rounded-full bg-gray-300 border"
-                            />
-                            <span>coubeh</span>
-                        </div>
                     </div>
 
                     {/* Équipe Rouge */}
                     <div>
                         <p className="font-semibold mb-2">équipe Rouge</p>
-                        <div className="flex items-center space-x-2 mb-2">
-                            <img
-                                src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
-                                alt="profile"
-                                className="w-6 h-6 rounded-full bg-gray-300 border"
-                            />
-                            <span>AlQuaïda 🪖</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                            <img
-                                src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
-                                alt="profile"
-                                className="w-6 h-6 rounded-full bg-gray-300 border"
-                            />
-                            <span>McGrégor</span>
-                        </div>
+
                     </div>
                 </div>
 
@@ -188,36 +154,6 @@ export default function Page() {
                             />
                             <span>
                                 McSmart
-                            </span>
-                        </div>
-                        <div className="flex items-center space-x-2 mb-2">
-                            <img
-                                src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
-                                alt="profile"
-                                className="w-6 h-6 rounded-full bg-gray-300 border"
-                            />
-                            <span >
-                                métroD
-                            </span>
-                        </div>
-                        <div className="flex items-center space-x-2 mb-2">
-                            <img
-                                src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
-                                alt="profile"
-                                className="w-6 h-6 rounded-full bg-gray-300 border"
-                            />
-                            <span >
-                                Jean
-                            </span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                            <img
-                                src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
-                                alt="profile"
-                                className="w-6 h-6 rounded-full bg-gray-300 border"
-                            />
-                            <span >
-                                arghhh
                             </span>
                         </div>
                     </div>
