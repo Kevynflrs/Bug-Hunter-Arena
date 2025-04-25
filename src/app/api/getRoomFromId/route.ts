@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-// import mongoose from "mongoose";
 import Room from "@/models/Room";
+// import mongoose from "mongoose";
 
 // if (!mongoose.connection.readyState) {
 //     await mongoose.connect(process.env.MONGODB_URI!);

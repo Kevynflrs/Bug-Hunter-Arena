@@ -1,9 +1,9 @@
 import { createServer } from 'http';
 import next from 'next';
 import { Server } from 'socket.io';
-import { v4 as uuidv4 } from 'uuid'; // Import UUID generator
-import mongoose from 'mongoose'; // Import Mongoose for MongoDB
-// import { createClient } from 'redis'; // Import Redis client
+import { v4 as uuidv4 } from 'uuid';
+import mongoose from 'mongoose';
+// import { createClient } from 'redis';
 
 // Initialize Next.js app
 const dev = process.env.NODE_ENV !== 'production';
