@@ -1,11 +1,8 @@
 import { NextResponse } from "next/server";
-import { connectMongoDB } from "@/utils/db";
 import Room from "@/models/Room";
 
 export async function POST() {
   try {
-    await connectMongoDB();
-
     function generateRoomId(): string {
       const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
       let id = "";
