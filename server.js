@@ -3,7 +3,7 @@ import next from 'next';
 import { Server } from 'socket.io';
 import { v4 as uuidv4 } from 'uuid';
 import mongoose from 'mongoose';
-// import { createClient } from 'redis';
+import Room from './src/models/Room.ts';
 
 // Initialize Next.js app
 const dev = process.env.NODE_ENV !== 'production';
@@ -11,6 +11,19 @@ const hostname = 'localhost';
 const port = 3000;
 const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
+
+
+async function deleteOldRooms() {
+  try {
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000); // Temps actuel - 1 heure
+    const result = await Room.deleteMany({ createdAt: { $lt: oneHourAgo } });
+    if (result.deletedCount > 0) {
+      console.log(`Deleted ${result.deletedCount} old rooms.`);
+    }
+  } catch (error) {
+    console.error('Error deleting old rooms:', error);
+  }
+}
 
 app.prepare().then(async () => {
   try {
@@ -22,18 +35,6 @@ app.prepare().then(async () => {
       });
       console.log('Connected to MongoDB');
     }
-
-    // Connect to Redis
-    // const redisClient = createClient({
-    //   url: process.env.REDIS_URL,
-    // });
-
-    // redisClient.on('error', (err) => {
-    //   console.error('Redis Client Error:', err);
-    // });
-
-    // await redisClient.connect();
-    // console.log('Connected to Redis');
 
     const server = createServer((req, res) => {
       handle(req, res); // Let Next.js handle routing
@@ -62,6 +63,9 @@ app.prepare().then(async () => {
       });
     });
 
+    // Set up periodic deletion of old rooms
+    setInterval(deleteOldRooms, 60 * 60 * 1000);
+
     server.listen(port, () => {
       console.log(`> Ready on http://${hostname}:${port}`);
     });
@@ -69,8 +73,6 @@ app.prepare().then(async () => {
     // Graceful shutdown
     process.on('SIGINT', async () => {
       console.log('Shutting down server...');
-      // await redisClient.disconnect();
-      // console.log('Disconnected from Redis');
       process.exit(0);
     });
   } catch (error) {
