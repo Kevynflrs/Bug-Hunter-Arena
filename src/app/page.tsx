@@ -1,11 +1,10 @@
 "use client";
 
-import Carousel from '../models/Carousel'; // Assurez-vous que le chemin est correct
+import Carousel from '../components/Carousel';
 import { useState, useEffect } from "react";
 import Image from 'next/image';
 import { redirect } from 'next/navigation';
 import handleRoomCreation from "@/components/handle_room_creation";
-import { Span } from 'next/dist/trace';
 
 const App = () => {
   const avatarList = [
@@ -74,7 +73,7 @@ const App = () => {
     <div className="flex flex-col items-center justify-center min-h-screen p-6">
       {/* Header */}
       <header className="flex flex-col items-center mb-6">
-        <Image src="/logo_bug_hunter.png" alt="Bug Hunter Arena Logo" width={150} height={200} />
+        <Image src="/assets/img/logo_bug_hunter.png" alt="Bug Hunter Arena Logo" width={150} height={200} />
       </header>
 
       {/* Buttons */}
@@ -123,28 +122,28 @@ const App = () => {
         </div>
 
         {/* Instructions */}
-<div className="flex flex-col items-center p-6 bg-white rounded-lg shadow-md w-full md:w-1/2">
-  <h2 className="text-lg font-bold text-gray-700 mb-4">Comment Jouer ?</h2>
-  <Carousel
-    images={[
-      "/Group 1.png",
-      "/data.png",
-      "/success.png",
-    ]}
-    texts={[
-      "Chaque équipe désigne un expert en PHP, JavaScript (ReactJS), C++, C# et mobile.",
-      "Une technologie est tirée au sort, et le joueur correspondant doit corriger un bug le plus rapidement possible pour marquer des points.",
-      "L’équipe avec le plus de point à la fin de la partie remporte (logique). \n A vous de jouer !",
-    ]}
-    interval={8000} // Change l'image toutes les 8 secondes
-  />
-</div>
+        <div className="flex flex-col items-center p-6 bg-white rounded-lg shadow-md w-full md:w-1/2">
+          <h2 className="text-lg font-bold text-gray-700 mb-4">Comment Jouer ?</h2>
+          <Carousel
+            images={[
+              "/assets/img/Group 1.png",
+              "/assets/img/data.png",
+              "/assets/img/success.png",
+            ]}
+            texts={[
+              "Chaque équipe désigne un expert en PHP, JavaScript (ReactJS), C++, C# et mobile.",
+              "Une technologie est tirée au sort, et le joueur correspondant doit corriger un bug pour marquer des points.",
+              "L’équipe avec le plus de point à la fin de la partie remporte (logique). \n A vous de jouer !",
+            ]}
+            interval={8000}
+          />
+        </div>
       </div>
 
       {/* Footer */}
       <footer className="mt-8 text-center text-gray-600">
-        <p>© 2023 Bug Hunter Arena. Tous droits réservés.</p>
-        <p>Développé par l'équipe de Bug Hunter Arena.</p>
+        <p>© 2025 Bug Hunter Arena. Tous droits réservés.</p>
+        <p>Développé par l&apos;équipe de Bug Hunter Arena.</p>
       </footer>
 
       {/* Popup Modal */}
