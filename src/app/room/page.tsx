@@ -1,7 +1,6 @@
 "use client"; // If using the Next.js App Router
 import React from "react";
 import { useEffect, useState } from "react";
-import { redirect } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation"; // Remplacez l'importation
 
