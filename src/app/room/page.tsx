@@ -1,33 +1,34 @@
 "use client"; // If using the Next.js App Router
-import React from "react";
-import { useEffect, useState } from "react";
-import { redirect } from 'next/navigation'
+import React, { useEffect, useState } from "react";
+import { redirect } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 
-export default function Page() {
+import { socket } from "@/socket";
 
+const UUID_EXPIRATION_TIME = 5 * 60 * 1000; // 5 minutes in milliseconds
+
+export default function Page() {
     interface IRoom extends Document {
-      scores_a: number;
-      scores_b: number;
-      name: string;
-      connectionId: number;
+        scores_a: number;
+        scores_b: number;
+        name: string;
+        connectionId: number;
     }
-    
 
     const [room, setRoom] = useState<IRoom | null>(null);
     const searchParams = useSearchParams();
     const connectionId = searchParams.get("id");
     const nickname = searchParams.get("nickname");
+    const [name, setName] = useState<string>(nickname || ""); // Initialize with an empty string or a default value
 
     const goHome = () => {
         redirect("/");
-    }
-
+    };
 
     useEffect(() => {
         const fetchRoom = async () => {
             try {
-                const response = await fetch(`/api/getRoomFromId?id=${connectionId}`); // Replace 123 with the actual room ID
+                const response = await fetch(`/api/getRoomFromId?id=${connectionId}`);
                 if (!response.ok) {
                     throw new Error("Failed to fetch room data");
                 }
@@ -39,7 +40,48 @@ export default function Page() {
         };
 
         fetchRoom();
-    }, [connectionId]);
+
+        function onConnect() {
+            console.log("Connected to socket:", socket.id);
+
+            const storedUUID = localStorage.getItem("sessionID");
+            const storedTimestamp = localStorage.getItem("sessionTimestamp");
+            const currentTime = Date.now();
+
+            if (storedUUID && storedTimestamp && currentTime - Number(storedTimestamp) < UUID_EXPIRATION_TIME) {
+                console.log("Reusing existing UUID:", storedUUID);
+                localStorage.setItem("sessionTimestamp", currentTime.toString()); // Reset the timer
+                setName(localStorage.getItem("name") || ""); // Retrieve the nickname from localStorage
+            } else {
+                console.log("Requesting new UUID from server");
+                socket.emit("request_uuid"); // Request a new UUID from the server
+            }
+        }
+
+        function onDisconnect() {
+            console.log("Disconnected from socket, reason:", socket.disconnected);
+        }
+
+        socket.on("assign_uuid", (sessionID) => {
+            console.log("Received UUID from server:", sessionID);
+            const currentTime = Date.now();
+            localStorage.setItem("sessionID", sessionID); // Store UUID in localStorage
+            localStorage.setItem("sessionTimestamp", currentTime.toString()); // Store timestamp
+            localStorage.setItem("name", name);
+        });
+
+        socket.on("connect", onConnect);
+        socket.on("disconnect", onDisconnect);
+
+        // Ensure the socket disconnects when the component unmounts
+        return () => {
+            console.log("Cleaning up socket connection...");
+            socket.off("connect", onConnect);
+            socket.off("disconnect", onDisconnect);
+            socket.off("assign_uuid");
+            socket.disconnect(); // Explicitly disconnect the socket
+        };
+    }, [name,connectionId]);
 
     return (
         <div className="min-h-screen flex items-center justify-center p-4">
