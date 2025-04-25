@@ -54,13 +54,28 @@ export default function Page() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4">
-      {/* Room ID and Delete Button */}
-      <div className="rounded-2xl border-2 border-gray-200 p-4 mb-4 max-w-5xl flex items-center justify-between">
         {/* Room ID */}
-        <p className="text-lg font-semibold">
-          Room ID: {connectionId || "Loading..."}
-        </p>
-      </div>
+        <div className="rounded-2xl border-2 border-gray-200 p-4 mb-4 max-w-5xl flex items-center justify-between">
+          <p className="text-lg font-semibold">
+            Room ID: {connectionId || "Loading..."}
+          </p>
+          <button
+            type="button"
+            className="ml-2"
+            onClick={() => {
+              if (connectionId) {
+            navigator.clipboard.writeText(connectionId);
+            alert("Room ID copied to clipboard!");
+              }
+            }}
+          >
+            <img
+              src="/assets/img/copy.png"
+              alt="Copy"
+              className="w-6 h-6 cursor-pointer"
+            />
+          </button>
+        </div>
 
       {/* Main container with two columns */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-5xl">
@@ -303,53 +318,69 @@ export default function Page() {
                 </div>
               </div>
 
-              {/* Delete button */}
-              <button
-                type="button"
-                className="text-red-500 hover:text-red-700 flex items-center"
-                onClick={async () => {
-                  if (
-                    confirm("Êtes-vous sûr de vouloir supprimer cette partie ?")
-                  ) {
-                    try {
-                      const response = await fetch(`/api/deleteRoom`, {
-                        method: "POST",
-                        headers: {
-                          "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify({ id: connectionId }),
-                      });
+              {/* Buttons container */}
+              <div className="flex justify-between mt-4">
+                {/* Play button */}
+                <button
+                  type="button"
+                  className="text-green-500 hover:text-green-700 flex items-center"
+                >
+                  <span className="mr-2">Lancer la partie</span>
+                  <img
+                    src="/assets/img/play.png"
+                    alt="Lancer la partie"
+                    className="w-6 h-6"
+                  />
+                </button>
 
-                      if (!response.ok) {
-                        const errorData = await response.json();
-                        console.error("Erreur API :", errorData);
-                        throw new Error(
-                          errorData.message ||
-                            "Échec de la suppression de la salle"
+                {/* Delete button */}
+                <button
+                  type="button"
+                  className="text-red-500 hover:text-red-700 flex items-center"
+                  onClick={async () => {
+                    if (
+                      confirm("Êtes-vous sûr de vouloir supprimer cette partie ?")
+                    ) {
+                      try {
+                        const response = await fetch(`/api/deleteRoom`, {
+                          method: "POST",
+                          headers: {
+                            "Content-Type": "application/json",
+                          },
+                          body: JSON.stringify({ id: connectionId }),
+                        });
+
+                        if (!response.ok) {
+                          const errorData = await response.json();
+                          console.error("Erreur API :", errorData);
+                          throw new Error(
+                            errorData.message ||
+                              "Échec de la suppression de la salle"
+                          );
+                        }
+
+                        alert("Partie supprimée avec succès !");
+                        router.push("/");
+                      } catch (error) {
+                        console.error(
+                          "Erreur lors de la suppression de la salle :",
+                          error
+                        );
+                        alert(
+                          "Une erreur s'est produite lors de la suppression de la partie."
                         );
                       }
-
-                      alert("Partie supprimée avec succès !");
-                      router.push("/");
-                    } catch (error) {
-                      console.error(
-                        "Erreur lors de la suppression de la salle :",
-                        error
-                      );
-                      alert(
-                        "Une erreur s'est produite lors de la suppression de la partie."
-                      );
                     }
-                  }
-                }}
-              >
-                <span className="mr-2">Supprimer la partie</span>
-                <img
-                  src="/assets/img/trash.png"
-                  alt="Supprimer la partie"
-                  className="w-6 h-6"
-                />
-              </button>
+                  }}
+                >
+                  <span className="mr-2">Supprimer la partie</span>
+                  <img
+                    src="/assets/img/trash.png"
+                    alt="Supprimer la partie"
+                    className="w-6 h-6"
+                  />
+                </button>
+              </div>
             </div>
           </div>
         </div>
