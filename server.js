@@ -48,39 +48,64 @@ app.prepare().then(async () => {
       console.log('User connected:', socket.id);
 
       // Handle UUID requests
-      socket.on('request_uuid', () => {
+      socket.on('request_uuid', (connectionId) => {
         const sessionID = uuidv4();
         socket.emit('assign_uuid', sessionID);
+        socket.join(connectionId);
+        // let team = 'none';
+        // socket.to(connectionId).emit('user_joined', {
+        //   sessionID,
+        //   name,
+        //   team,
+        //   // avatar: `https://api.dicebear.com/5.x/thumbs/svg?seed=${name}`,
+        // });
       });
 
-      socket.on('save_content', (data) => {
-        console.log(`Saving content for ${socket.id}:`, data);
-        // Handle saving content logic here
-      });
-
-      socket.on('join_room', async (roomId) => {
+      // Handle room joining
+      socket.on('join_room', async (roomId, name, sessionID) => {
         console.log(`User ${socket.id} joining room: ${roomId}`);
         socket.join(roomId);
 
+        // Get all sockets in the room
+        const socketsInRoom = await io.in(roomId).fetchSockets();
+        const playersInRoom = socketsInRoom.map((s) => s.data?.name);
+
         // Notify the user that they have joined the room
-        socket.emit('room_joined', roomId);
+        socket.emit('room_joined', playersInRoom );
 
+        let team = 'none';
         // Notify other users in the room that a new user has joined
-        socket.to(roomId).emit('user_joined', socket.id);
+        socket.to(roomId).emit('user_joined', { name, sessionID, team });
 
-        // Handle team selection
-        socket.on('choose_team', (team) => {
-          if (team === 'red' || team === 'blue') {
-            console.log(`User ${socket.id} chose team: ${team} in room: ${roomId}`);
-            
-            // Notify all users in the room about the team choice
-            io.to(roomId).emit('team_chosen', { userId: socket.id, team });
-          } else {
-            console.log(`Invalid team choice by user ${socket.id}: ${team}`);
-            socket.emit('invalid_team', 'Please choose either "red" or "blue".');
-          }
-        });
+        // Store the player's name in the socket's data for future reference
+        socket.data.name = name;
       });
+
+      // socket.on('join_room', async (roomId, name, sessionID) => {
+      //   console.log(`User ${socket.id} joining room: ${roomId}`);
+      //   socket.join(roomId);
+
+      //   console.log(`User ${name} with session ID ${sessionID} joined room: ${roomId}`);
+
+      //   // Notify the user that they have joined the room
+      //   socket.emit('room_joined', roomId);
+
+      //   // Notify other users in the room that a new user has joined
+      //   socket.to(roomId).emit('user_joined', name, sessionID);
+
+      //   // Handle team selection
+      //   socket.on('choose_team', (team) => {
+      //     if (team === 'red' || team === 'blue') {
+      //       console.log(`User ${name} chose team: ${team} in room: ${roomId}`);
+
+      //       // Notify all users in the room about the team choice
+      //       io.to(roomId).emit('team_chosen', { sessionID: sessionID, team });
+      //     } else {
+      //       console.log(`Invalid team choice by user ${sessionID}: ${team}`);
+      //       socket.emit('invalid_team', 'Please choose either "red" or "blue".');
+      //     }
+      //   });
+      // });
 
       socket.on('disconnect', (reason) => {
         console.log(`User disconnected: ${socket.id}, Reason: ${reason}`);

@@ -54,7 +54,9 @@ export default function Page() {
                 setName(localStorage.getItem("name") || ""); // Retrieve the nickname from localStorage
             } else {
                 console.log("Requesting new UUID from server");
-                socket.emit("request_uuid"); // Request a new UUID from the server
+                console.log("Connection ID:", connectionId);
+                console.log("Nickname:", name);
+                socket.emit("request_uuid", connectionId); // Request a new UUID from the server
             }
         }
 
@@ -73,18 +75,29 @@ export default function Page() {
         socket.on("connect", onConnect);
         socket.on("disconnect", onDisconnect);
 
-        socket.emit("join_room", connectionId); // Emit join_room event with connectionId and name
-
-        socket.emit('choose_team', 'red');
-
-        socket.on('team_chosen', ({ userId, team }) => {
-            console.log(`User ${userId} joined team ${team}`);
+        socket.on("user_joined", (user) => {
+            console.log("User joined:", user);
         });
 
-
-        socket.on('invalid_team', (message) => {
-            console.error(message);
+        socket.emit("join_room", connectionId, name, localStorage.getItem("sessionID"));
+        socket.on("room_joined", (playersInRoom) => {
+            console.log("Room joined successfully:", playersInRoom);
         });
+
+        // Emit join_room event with connectionId, name, and UUID
+        // const sessionID = localStorage.getItem("sessionID");
+        // console.log("Joining room with connectionId:", connectionId, "and sessionID:", sessionID);
+        // socket.emit("join_room", { connectionId, name, sessionID });
+
+        // socket.emit('choose_team', 'red');
+
+        // socket.on('team_chosen', ({ sessionID, team }) => {
+        //     console.log(`User ${sessionID} joined team ${team}`);
+        // });
+
+        // socket.on('invalid_team', (message) => {
+        //     console.error(message);
+        // });
 
         // Ensure the socket disconnects when the component unmounts
         return () => {
