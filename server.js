@@ -73,7 +73,7 @@ app.prepare().then(async () => {
         const playersInRoom = socketsInRoom.map((s) => s.data?.name);
 
         // Notify the user that they have joined the room
-        socket.emit('room_joined', playersInRoom );
+        socket.emit('room_joined', playersInRoom);
 
         let team = 'none';
         // Notify other users in the room that a new user has joined
@@ -107,6 +107,42 @@ app.prepare().then(async () => {
       //     }
       //   });
       // });
+
+      const teams = {
+        red: new Set(),
+        blue: new Set(),
+        spectator: new Set(),
+        admin: new Set(),
+      };
+
+      socket.on('join_team', ({ team, sessionID }) => {
+        if (!['red', 'blue', 'spectator', 'admin'].includes(team)) {
+          socket.emit('invalid_team', 'Invalid team selected.');
+          return;
+        }
+
+        // Remove user from all other teams
+        for (const t of Object.keys(teams)) {
+          teams[t].delete(sessionID);
+        }
+
+        if (teams[team].size >= 5) {
+          socket.emit('team_full', `The ${team} team is full.`);
+          return;
+        }
+
+        // Add user to the selected team
+        teams[team].add(sessionID);
+
+        // Emit updated team list to all clients
+        const allTeams = {};
+        for (const t of Object.keys(teams)) {
+          allTeams[t] = Array.from(teams[t]);
+        }
+        io.emit('team_update_full', allTeams);
+
+        console.log(`User ${sessionID} joined team ${team}`);
+      });
 
       socket.on('disconnect', (reason) => {
         console.log(`User disconnected: ${socket.id}, Reason: ${reason}`);
