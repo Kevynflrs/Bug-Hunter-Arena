@@ -67,6 +67,8 @@ app.prepare().then(async () => {
         socket.join(roomId);
 
         // Get all sockets in the room
+
+        socket.data.name = name;
         const socketsInRoom = await io.in(roomId).fetchSockets();
         const playersInRoom = socketsInRoom.map((s) => s.data?.name);
 
@@ -78,7 +80,6 @@ app.prepare().then(async () => {
         socket.to(roomId).emit('user_joined', { name, sessionID, team });
 
         // Store the player's name in the socket's data for future reference
-        socket.data.name = name;
       });
 
       // socket.on('join_room', async (roomId, name, sessionID) => {

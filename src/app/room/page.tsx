@@ -3,7 +3,9 @@ import React, { useEffect, useState } from "react";
 import { redirect } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 
-import { socket } from "@/socket";
+import { getSocket } from "@/socket";
+
+const socket = getSocket();
 
 const UUID_EXPIRATION_TIME = 5 * 60 * 1000; // 5 minutes in milliseconds
 
@@ -20,6 +22,7 @@ export default function Page() {
     const connectionId = searchParams.get("id");
     const nickname = searchParams.get("nickname");
     const [name, setName] = useState<string>(nickname || ""); // Initialize with an empty string or a default value
+    const [usersList, setUsersList] = useState<string[]>([]); // State to store the list of users
 
     const goHome = () => {
         redirect("/");
@@ -75,13 +78,17 @@ export default function Page() {
         socket.on("connect", onConnect);
         socket.on("disconnect", onDisconnect);
 
-        socket.on("user_joined", (user) => {
-            console.log("User joined:", user);
+
+        socket.on("user_joined", (users) => {
+            console.log("User joined:", users);
+            // setUsersList(Array.isArray(users) ? users : []); // Ensure usersList is always an array
         });
 
         socket.emit("join_room", connectionId, name, localStorage.getItem("sessionID"));
         socket.on("room_joined", (playersInRoom) => {
             console.log("Room joined successfully:", playersInRoom);
+            setUsersList(Array.isArray(playersInRoom) ? playersInRoom : []); // Ensure usersList is always an array
+
         });
 
         // Emit join_room event with connectionId, name, and UUID
@@ -131,15 +138,19 @@ export default function Page() {
                     {/* Équipe Bleu */}
                     <div className="mb-4">
                         <p className="font-semibold mb-2">équipe Bleu</p>
-                        {/* Each user has a placeholder image on the left */}
-                        <div className="flex items-center space-x-2 mb-2">
-                            <img
-                                src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
-                                alt="profile"
-                                className="w-6 h-6 rounded-full bg-gray-300 border"
-                            />
-                            <span>AlQuaida 🪖</span>
-                        </div>
+
+                        {
+                            usersList.map((user, index) => (
+                                <div key={index} className="flex items-center space-x-2 mb-2">
+                                    <img
+                                        src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
+                                        alt="profile"
+                                        className="w-6 h-6 rounded-full bg-gray-300 border"
+                                    />
+                                    <span>{user}</span>
+                                </div>
+                            ))
+                        }
                     </div>
 
                     {/* Équipe Rouge */}
