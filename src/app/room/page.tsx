@@ -1,8 +1,14 @@
 "use client"; // If using the Next.js App Router
-import React from "react";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
+import { redirect } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation"; // Remplacez l'importation
+
+import { getSocket } from "@/socket";
+
+const socket = getSocket();
+
+const UUID_EXPIRATION_TIME = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 export default function Page() {
   interface IRoom extends Document {
@@ -12,12 +18,16 @@ export default function Page() {
     connectionId: number;
   }
 
-  const [room, setRoom] = useState<IRoom | null>(null);
+    const [room, setRoom] = useState<IRoom | null>(null);
+    const searchParams = useSearchParams();
+    const connectionId = searchParams.get("id");
+    const nickname = searchParams.get("nickname");
+    const router = useRouter();
+    const [name, setName] = useState<string>(nickname || ""); // Initialize with an empty string or a default value
+    const [usersList, setUsersList] = useState<string[]>([]); // State to store the list of users
 
-  const searchParams = useSearchParams();
-  const connectionId = searchParams.get("id");
-  const nickname = searchParams.get("nickname");
-  const router = useRouter();
+    const [teamMembers, setTeamMembers] = useState({ red: [], blue: [], spectator: [], admin: [] });
+    const [error, setError] = useState<string | null>(null);
 
   const goHome = () => {
     router.push("/");
@@ -48,8 +58,92 @@ export default function Page() {
       }
     };
 
-    fetchRoom();
-  }, [connectionId]);
+        fetchRoom();
+
+        function onConnect() {
+            console.log("Connected to socket:", socket.id);
+
+            const storedUUID = localStorage.getItem("sessionID");
+            const storedTimestamp = localStorage.getItem("sessionTimestamp");
+            const currentTime = Date.now();
+
+            if (storedUUID && storedTimestamp && currentTime - Number(storedTimestamp) < UUID_EXPIRATION_TIME) {
+                console.log("Reusing existing UUID:", storedUUID);
+                localStorage.setItem("sessionTimestamp", currentTime.toString()); // Reset the timer
+                setName(localStorage.getItem("name") || ""); // Retrieve the nickname from localStorage
+            } else {
+                console.log("Requesting new UUID from server");
+                console.log("Connection ID:", connectionId);
+                console.log("Nickname:", name);
+                socket.emit("request_uuid", connectionId); // Request a new UUID from the server
+            }
+        }
+
+        function onDisconnect() {
+            console.log("Disconnected from socket, reason:", socket.disconnected);
+        }
+
+        socket.on("assign_uuid", (sessionID) => {
+            console.log("Received UUID from server:", sessionID);
+            const currentTime = Date.now();
+            localStorage.setItem("sessionID", sessionID); // Store UUID in localStorage
+            localStorage.setItem("sessionTimestamp", currentTime.toString()); // Store timestamp
+            localStorage.setItem("name", name);
+        });
+
+        socket.on("connect", onConnect);
+        socket.on("disconnect", onDisconnect);
+
+        socket.on("user_joined", (users) => {
+            console.log("User joined:", users);
+            setUsersList((prevUsers) => Array.isArray(users) ? [...prevUsers, ...users] : prevUsers);
+        });
+
+        socket.on("team_update_full", (updatedTeams) => {
+          setTeamMembers(updatedTeams);
+        });
+
+        socket.on("team_full", (message) => {
+          setError(message);
+          setTimeout(() => setError(null), 3000);
+        });
+
+        socket.emit("join_room", connectionId, name, localStorage.getItem("sessionID"));
+        socket.on("room_joined", (playersInRoom) => {
+            console.log("Room joined successfully:", playersInRoom);
+            setUsersList(Array.isArray(playersInRoom) ? playersInRoom : []); // Ensure usersList is always an array
+        });
+
+        // Emit join_room event with connectionId, name, and UUID
+        // const sessionID = localStorage.getItem("sessionID");
+        // console.log("Joining room with connectionId:", connectionId, "and sessionID:", sessionID);
+        // socket.emit("join_room", { connectionId, name, sessionID });
+
+        // socket.emit('choose_team', 'red');
+
+        // socket.on('team_chosen', ({ sessionID, team }) => {
+        //     console.log(`User ${sessionID} joined team ${team}`);
+        // });
+
+        // socket.on('invalid_team', (message) => {
+        //     console.error(message);
+        // });
+
+        // Ensure the socket disconnects when the component unmounts
+        return () => {
+            console.log("Cleaning up socket connection...");
+            socket.off("connect", onConnect);
+            socket.off("disconnect", onDisconnect);
+            socket.off("assign_uuid");
+            socket.disconnect(); // Explicitly disconnect the socket
+        };
+    }, [name, connectionId]);
+
+    const handleJoinTeam = (team: 'red' | 'blue' | 'spectator' | 'admin') => {
+      const sessionID = localStorage.getItem("sessionID");
+      if (!sessionID) return;
+      socket.emit("join_team", { team, sessionID });
+    }, [connectionId]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4">
@@ -111,50 +205,20 @@ export default function Page() {
                 src="/assets/img/t-shirt_blue.png"
                 alt="Équipe Bleu"
                 className="w-5 h-5"
+                onClick={() => handleJoinTeam('blue')}
               />
             </div>
             {/* Each user has a placeholder image on the left */}
-            <div className="flex items-center space-x-2 mb-2">
-              <img
-                src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
-                alt="profile"
-                className="w-6 h-6 rounded-full bg-gray-300 border"
-              />
-              <span>AlQuaida 🪖</span>
-            </div>
-            <div className="flex items-center space-x-2 mb-2">
-              <img
-                src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
-                alt="profile"
-                className="w-6 h-6 rounded-full bg-gray-300 border"
-              />
-              <span>McGrégor</span>
-            </div>
-            <div className="flex items-center space-x-2 mb-2">
-              <img
-                src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
-                alt="profile"
-                className="w-6 h-6 rounded-full bg-gray-300 border"
-              />
-              <span>PingPong</span>
-            </div>
-            <div className="flex items-center space-x-2 mb-2">
-              <img
-                src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
-                alt="profile"
-                className="w-6 h-6 rounded-full bg-gray-300 border"
-              />
-              <span>9/11</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <img
-                src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
-                alt="profile"
-                className="w-6 h-6 rounded-full bg-gray-300 border"
-              />
-              <span>coubeh</span>
-            </div>
-          </div>
+            {teamMembers.blue.map((user, index) => (
+                        <div key={index} className="flex items-center space-x-2 mb-2">
+                          <img
+                            src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
+                            alt="profile"
+                            className="w-6 h-6 rounded-full bg-gray-300 border"
+                          />
+                          <span>{name}</span>
+                        </div>
+                      ))}
 
           {/* Équipe Rouge */}
           <div>
@@ -162,26 +226,21 @@ export default function Page() {
               <p className="font-semibold">équipe Rouge</p>
               <img
                 src="/assets/img/t-shirt_red.png"
-                alt="Équipe Bleu"
+                alt="Équipe Rouge"
                 className="w-5 h-5"
+                onClick={() => handleJoinTeam('red')}
               />
             </div>
-            <div className="flex items-center space-x-2 mb-2">
-              <img
-                src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
-                alt="profile"
-                className="w-6 h-6 rounded-full bg-gray-300 border"
-              />
-              <span>AlQuaïda 🪖</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <img
-                src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
-                alt="profile"
-                className="w-6 h-6 rounded-full bg-gray-300 border"
-              />
-              <span>McGrégor</span>
-            </div>
+            {teamMembers.red.map((user, index) => (
+                        <div key={index} className="flex items-center space-x-2 mb-2">
+                          <img
+                            src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
+                            alt="profile"
+                            className="w-6 h-6 rounded-full bg-gray-300 border"
+                          />
+                          <span>{name}</span>
+                        </div>
+                      ))}
           </div>
         </div>
 
@@ -196,43 +255,18 @@ export default function Page() {
                   src="/assets/img/mvp.png"
                   alt="Return"
                   className="w-7 h-7"
+                  onClick={() => handleJoinTeam('admin')}
                 />
               </span>
             </div>
             {/* Gray line */}
             <hr className="border-gray-200 mb-4" />
-            <div className="flex items-center space-x-2 mb-2">
-              <img
-                src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
-                alt="profile"
-                className="w-6 h-6 rounded-full bg-gray-300 border"
-              />
-              <span>McSmart</span>
-            </div>
-            <div className="flex items-center space-x-2 mb-2">
-              <img
-                src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
-                alt="profile"
-                className="w-6 h-6 rounded-full bg-gray-300 border"
-              />
-              <span>métroD</span>
-            </div>
-            <div className="flex items-center space-x-2 mb-2">
-              <img
-                src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
-                alt="profile"
-                className="w-6 h-6 rounded-full bg-gray-300 border"
-              />
-              <span>Jean</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <img
-                src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
-                alt="profile"
-                className="w-6 h-6 rounded-full bg-gray-300 border"
-              />
-              <span>arghhh</span>
-            </div>
+            {teamMembers.spectator.map((user, index) => (
+                        <div key={index} className="flex items-center space-x-2 mb-2">
+                          <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="profile" className="w-6 h-6 rounded-full bg-gray-300 border" />
+                          <span>{name}</span>
+                        </div>
+                      ))}
           </div>
 
           {/* Paramètre de Jeu */}
