@@ -24,6 +24,9 @@ export default function Page() {
     const [name, setName] = useState<string>(nickname || ""); // Initialize with an empty string or a default value
     const [usersList, setUsersList] = useState<string[]>([]); // State to store the list of users
 
+    const [teamMembers, setTeamMembers] = useState({ red: [], blue: [], spectator: [], admin: [] });
+    const [error, setError] = useState<string | null>(null);
+
     const goHome = () => {
         redirect("/");
     };
@@ -78,17 +81,24 @@ export default function Page() {
         socket.on("connect", onConnect);
         socket.on("disconnect", onDisconnect);
 
-
         socket.on("user_joined", (users) => {
             console.log("User joined:", users);
-            // setUsersList(Array.isArray(users) ? users : []); // Ensure usersList is always an array
+            setUsersList((prevUsers) => Array.isArray(users) ? [...prevUsers, ...users] : prevUsers);
+        });
+
+        socket.on("team_update_full", (updatedTeams) => {
+          setTeamMembers(updatedTeams);
+        });
+
+        socket.on("team_full", (message) => {
+          setError(message);
+          setTimeout(() => setError(null), 3000);
         });
 
         socket.emit("join_room", connectionId, name, localStorage.getItem("sessionID"));
         socket.on("room_joined", (playersInRoom) => {
             console.log("Room joined successfully:", playersInRoom);
             setUsersList(Array.isArray(playersInRoom) ? playersInRoom : []); // Ensure usersList is always an array
-
         });
 
         // Emit join_room event with connectionId, name, and UUID
@@ -116,6 +126,12 @@ export default function Page() {
         };
     }, [name, connectionId]);
 
+    const handleJoinTeam = (team: 'red' | 'blue' | 'spectator' | 'admin') => {
+      const sessionID = localStorage.getItem("sessionID");
+      if (!sessionID) return;
+      socket.emit("join_team", { team, sessionID });
+    };
+
     return (
         <div className="min-h-screen flex items-center justify-center p-4">
             {/* Main container with two columns */}
@@ -135,50 +151,106 @@ export default function Page() {
                         </button>
                     </div>
 
+                    {/* Join team buttons and error display */}
+                    {error && <div className="text-red-500 font-semibold mb-4">{error}</div>}
+
                     {/* Équipe Bleu */}
                     <div className="mb-4">
-                        <p className="font-semibold mb-2">équipe Bleu</p>
-
-                        {
-                            usersList.map((user, index) => (
-                                <div key={index} className="flex items-center space-x-2 mb-2">
-                                    <img
-                                        src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
-                                        alt="profile"
-                                        className="w-6 h-6 rounded-full bg-gray-300 border"
-                                    />
-                                    <span>{user}</span>
-                                </div>
-                            ))
-                        }
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="font-semibold">Équipe Bleu</p>
+                        <button onClick={() => handleJoinTeam('blue')} className="bg-blue-600 text-white text-sm px-3 py-1 rounded">
+                          Rejoindre
+                        </button>
+                      </div>
+                      {teamMembers.blue.map((user, index) => (
+                        <div key={index} className="flex items-center space-x-2 mb-2">
+                          <img
+                            src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
+                            alt="profile"
+                            className="w-6 h-6 rounded-full bg-gray-300 border"
+                          />
+                          <span>{name}</span>
+                        </div>
+                      ))}
                     </div>
 
                     {/* Équipe Rouge */}
                     <div>
-                        <p className="font-semibold mb-2">équipe Rouge</p>
-
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="font-semibold">Équipe Rouge</p>
+                        <button onClick={() => handleJoinTeam('red')} className="bg-red-600 text-white text-sm px-3 py-1 rounded">
+                          Rejoindre
+                        </button>
+                      </div>
+                      {teamMembers.red.map((user, index) => (
+                        <div key={index} className="flex items-center space-x-2 mb-2">
+                          <img
+                            src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
+                            alt="profile"
+                            className="w-6 h-6 rounded-full bg-gray-300 border"
+                          />
+                          <span>{name}</span>
+                        </div>
+                      ))}
                     </div>
+
+                    {/* Équipe Spectateur */}
+                    {/* <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="font-semibold">Spectateurs</p>
+                        <button onClick={() => handleJoinTeam('spectator')} className="bg-gray-600 text-white text-sm px-3 py-1 rounded">
+                          Rejoindre
+                        </button>
+                      </div>
+                      {teamMembers.spectator.map((user, index) => (
+                        <div key={index} className="flex items-center space-x-2 mb-2">
+                          <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="profile" className="w-6 h-6 rounded-full bg-gray-300 border" />
+                          <span>{user}</span>
+                        </div>
+                      ))}
+                    </div> */}
+
                 </div>
 
                 {/* Right Column: Maîtres du Jeu + Paramètre de Jeu */}
                 <div className="flex flex-col space-y-4">
                     {/* Maîtres du Jeu (still using radio buttons) */}
                     <div className="rounded-2xl border-2 border-gray-200 p-4">
-                        <div className="flex items-center mb-4 space-x-2">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center space-x-2">
                             <h2 className="text-xl font-semibold">Maîtres du Jeu</h2>
-                            <span role="img" aria-label="Game Master" className="text-2xl">
-                                🧙
-                            </span>
+                            <span role="img" aria-label="Game Master" className="text-2xl">🧙</span>
+                          </div>
+                          <button onClick={() => handleJoinTeam('admin')} className="bg-yellow-500 text-white text-sm px-3 py-1 rounded">
+                            Rejoindre
+                          </button>
                         </div>
                         <div className="flex items-center space-x-2 mb-2">
-                            <img
-                                src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
-                                alt="profile"
-                                className="w-6 h-6 rounded-full bg-gray-300 border"
-                            />
-                            <span>
-                                McSmart
-                            </span>
+                        {teamMembers.admin.map((user, index) => (
+                        <div key={index} className="flex items-center space-x-2 mb-2">
+                          <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="profile" className="w-6 h-6 rounded-full bg-gray-300 border" />
+                          <span>{name}</span>
+                        </div>
+                      ))}
+                        </div>
+                    </div>
+                    <div className="rounded-2xl border-2 border-gray-200 p-4">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center space-x-2">
+                            <h2 className="text-xl font-semibold">Spectateurs</h2>
+                            <span role="img" aria-label="Game Master" className="text-2xl">🔍</span>
+                          </div>
+                          <button onClick={() => handleJoinTeam('spectator')} className="bg-gray-600 text-white text-sm px-3 py-1 rounded">
+                          Rejoindre
+                        </button>
+                        </div>
+                        <div className="flex items-center space-x-2 mb-2">
+                        {teamMembers.spectator.map((user, index) => (
+                        <div key={index} className="flex items-center space-x-2 mb-2">
+                          <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="profile" className="w-6 h-6 rounded-full bg-gray-300 border" />
+                          <span>{name}</span>
+                        </div>
+                      ))}
                         </div>
                     </div>
 
