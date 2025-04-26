@@ -106,7 +106,7 @@ export default function Page() {
           {/* Équipe Bleu */}
           <div className="mb-4">
             <div className="flex items-center space-x-2 mb-2">
-              <p className="font-semibold">équipe Bleu</p>
+              <p className="font-semibold">Équipe Bleu</p>
               <img
                 src="/assets/img/t-shirt_blue.png"
                 alt="Équipe Bleu"
@@ -122,66 +122,20 @@ export default function Page() {
               />
               <span>AlQuaida 🪖</span>
             </div>
-            <div className="flex items-center space-x-2 mb-2">
-              <img
-                src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
-                alt="profile"
-                className="w-6 h-6 rounded-full bg-gray-300 border"
-              />
-              <span>McGrégor</span>
-            </div>
-            <div className="flex items-center space-x-2 mb-2">
-              <img
-                src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
-                alt="profile"
-                className="w-6 h-6 rounded-full bg-gray-300 border"
-              />
-              <span>PingPong</span>
-            </div>
-            <div className="flex items-center space-x-2 mb-2">
-              <img
-                src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
-                alt="profile"
-                className="w-6 h-6 rounded-full bg-gray-300 border"
-              />
-              <span>9/11</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <img
-                src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
-                alt="profile"
-                className="w-6 h-6 rounded-full bg-gray-300 border"
-              />
-              <span>coubeh</span>
-            </div>
+            
           </div>
 
           {/* Équipe Rouge */}
           <div>
             <div className="flex items-center space-x-2 mb-2">
-              <p className="font-semibold">équipe Rouge</p>
+              <p className="font-semibold">Équipe Rouge</p>
               <img
                 src="/assets/img/t-shirt_red.png"
                 alt="Équipe Bleu"
                 className="w-5 h-5"
               />
             </div>
-            <div className="flex items-center space-x-2 mb-2">
-              <img
-                src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
-                alt="profile"
-                className="w-6 h-6 rounded-full bg-gray-300 border"
-              />
-              <span>AlQuaïda 🪖</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <img
-                src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
-                alt="profile"
-                className="w-6 h-6 rounded-full bg-gray-300 border"
-              />
-              <span>McGrégor</span>
-            </div>
+            
           </div>
         </div>
 
@@ -201,38 +155,7 @@ export default function Page() {
             </div>
             {/* Gray line */}
             <hr className="border-gray-200 mb-4" />
-            <div className="flex items-center space-x-2 mb-2">
-              <img
-                src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
-                alt="profile"
-                className="w-6 h-6 rounded-full bg-gray-300 border"
-              />
-              <span>McSmart</span>
-            </div>
-            <div className="flex items-center space-x-2 mb-2">
-              <img
-                src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
-                alt="profile"
-                className="w-6 h-6 rounded-full bg-gray-300 border"
-              />
-              <span>métroD</span>
-            </div>
-            <div className="flex items-center space-x-2 mb-2">
-              <img
-                src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
-                alt="profile"
-                className="w-6 h-6 rounded-full bg-gray-300 border"
-              />
-              <span>Jean</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <img
-                src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
-                alt="profile"
-                className="w-6 h-6 rounded-full bg-gray-300 border"
-              />
-              <span>arghhh</span>
-            </div>
+            
           </div>
 
           {/* Paramètre de Jeu */}
