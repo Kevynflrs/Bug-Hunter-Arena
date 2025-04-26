@@ -5,6 +5,7 @@ interface IRoom extends Document {
   scores_a: number;
   scores_b: number;
   connectionId: string;
+  name: string;
   createdAt: Date;
 }
 
@@ -12,6 +13,7 @@ const RoomSchema = new Schema<IRoom>({
   scores_a: { type: Number, required: true, default: 0 },
   scores_b: { type: Number, required: true, default: 0 },
   connectionId: { type: String, required: true },
+  name: { type: String, required: true },
   createdAt: { type: Date, required: true, default: Date.now },
 });
 
