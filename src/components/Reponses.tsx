@@ -4,22 +4,31 @@ interface ReponsesProps {
   correction: string;
   explication: string;
   onAnswerSubmit: (isCorrect: boolean) => void;
+  teamColors: {
+    bg: string;
+    border: string;
+    text: string;
+    button: string;
+  };
+  isGameMaster: boolean;
 }
 
-const Reponses = ({ correction, explication, onAnswerSubmit }: ReponsesProps) => {
+const Reponses = ({ correction, explication, onAnswerSubmit, teamColors, isGameMaster }: ReponsesProps) => {
   const [userAnswer, setUserAnswer] = useState('');
   const [showCorrection, setShowCorrection] = useState(false);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
 
   const handleSubmit = () => {
     if (showCorrection) {
-      // Passer à la question suivante
+      // Seul le maître du jeu peut passer à la question suivante
+      if (!isGameMaster) {
+        return;
+      }
       onAnswerSubmit(isCorrect || false);
       setUserAnswer('');
       setShowCorrection(false);
       setIsCorrect(null);
     } else {
-      // Vérifier la réponse
       const correct = userAnswer.trim().toLowerCase() === correction.trim().toLowerCase();
       setIsCorrect(correct);
       setShowCorrection(true);
@@ -31,7 +40,7 @@ const Reponses = ({ correction, explication, onAnswerSubmit }: ReponsesProps) =>
       <textarea
         value={userAnswer}
         onChange={(e) => setUserAnswer(e.target.value)}
-        className="w-full p-4 border rounded-md mb-4"
+        className={`w-full p-4 border rounded-md mb-4 ${teamColors.border}`}
         placeholder="Entrez votre réponse ici..."
         rows={6}
         disabled={showCorrection}
@@ -40,10 +49,11 @@ const Reponses = ({ correction, explication, onAnswerSubmit }: ReponsesProps) =>
       <button
         onClick={handleSubmit}
         className={`w-full py-3 px-6 rounded-md font-semibold ${
-          showCorrection ? 'bg-green-500' : 'bg-blue-500'
-        } text-white hover:opacity-90`}
+          showCorrection ? (isGameMaster ? 'bg-green-500' : 'bg-gray-400') : teamColors.button
+        } text-white ${!isGameMaster && showCorrection ? 'cursor-not-allowed' : 'hover:opacity-90'}`}
+        disabled={!isGameMaster && showCorrection}
       >
-        {showCorrection ? 'Question suivante' : 'Soumettre'}
+        {showCorrection ? (isGameMaster ? 'Question suivante' : 'En attente du maître du jeu...') : 'Soumettre'}
       </button>
 
       {showCorrection && (
