@@ -1,156 +1,88 @@
-"use client"; // If using the Next.js App Router
-import React, { useEffect, useState } from "react";
-import { redirect } from "next/navigation";
+"use client";
 
-import { useSearchParams } from "next/navigation";
-import { useRouter } from "next/navigation";
-
-import { getSocket } from "@/socket";
-
-const socket = getSocket();
-
-const UUID_EXPIRATION_TIME = 5 * 60 * 1000; // 5 minutes in milliseconds
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function Page() {
-    interface IRoom extends Document {
-        scores_a: number;
-        scores_b: number;
-        name: string;
-        connectionId: number;
-    }
-
-    const [room, setRoom] = useState<IRoom | null>(null);
     const searchParams = useSearchParams();
-    const connectionId = searchParams.get("id");
-    const nickname = searchParams.get("nickname");
     const router = useRouter();
-    const [name, setName] = useState<string>(nickname || ""); // Initialize with an empty string or a default value
-    const [usersList, setUsersList] = useState<string[]>([]); // State to store the list of users
-
-    const [teamMembers, setTeamMembers] = useState({ red: [], blue: [], spectator: [], admin: [] });
+    const [connectionId, setConnectionId] = useState<string | null>(null);
+    const [nickname, setNickname] = useState<string>('');
+    const [difficulte, setDifficulte] = useState<number>(1);
+    const [duree, setDuree] = useState<number>(260);
+    const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
+    const [room, setRoom] = useState<any>(null); // Ajout de l'état room
     const [error, setError] = useState<string | null>(null);
-
-    const goHome = () => {
-        redirect("/");
-    };
-
-
-    function getLanguages() {
-        return [
-            { id: "lang-js", label: "JavaScript" },
-            { id: "lang-css", label: "Css" },
-            { id: "lang-html", label: "Html" },
-            { id: "lang-csharp", label: "C#" },
-            { id: "lang-php", label: "Php" },
-            { id: "lang-python", label: "Python" },
-        ];
-    }
+    const [teamMembers, setTeamMembers] = useState({
+        blue: [],
+        red: [],
+        admin: [],
+        spectator: []
+    });
 
     useEffect(() => {
-        const fetchRoom = async () => {
-            try {
-                const response = await fetch(`/api/getRoomFromId?id=${connectionId}`);
-                if (!response.ok) {
-                    throw new Error("Failed to fetch room data");
-                }
-                const data = await response.json();
-                setRoom(data);
-            } catch (error) {
-                console.error("Error fetching room:", error);
-            }
-        };
-
-        fetchRoom();
-
-        function onConnect() {
-            console.log("Connected to socket:", socket.id);
-
-            const storedUUID = localStorage.getItem("sessionID");
-            const storedTimestamp = localStorage.getItem("sessionTimestamp");
-            const currentTime = Date.now();
-
-            if (storedUUID && storedTimestamp && currentTime - Number(storedTimestamp) < UUID_EXPIRATION_TIME) {
-                console.log("Reusing existing UUID:", storedUUID);
-                localStorage.setItem("sessionTimestamp", currentTime.toString()); // Reset the timer
-                setName(localStorage.getItem("name") || ""); // Retrieve the nickname from localStorage
-            } else {
-                console.log("Requesting new UUID from server");
-                console.log("Connection ID:", connectionId);
-                console.log("Nickname:", name);
-                socket.emit("request_uuid", connectionId); // Request a new UUID from the server
-            }
+        const id = searchParams.get('id');
+        const nick = searchParams.get('nickname');
+        if (id) {
+            setConnectionId(id);
+            setNickname(nick || '');
+            fetchRoomData(id); // Ajout de la fonction pour récupérer les données de la room
+        } else {
+            router.push('/');
         }
+    }, [searchParams]);
 
-        function onDisconnect() {
-            console.log("Disconnected from socket, reason:", socket.disconnected);
+    const fetchRoomData = async (id: string) => {
+        try {
+            const response = await fetch(`/api/getRoomFromId?id=${id}`);
+            if (!response.ok) throw new Error('Room not found');
+            const data = await response.json();
+            setRoom(data);
+        } catch (error) {
+            console.error('Error fetching room:', error);
+            setError('Error loading room data');
         }
-
-        socket.on("assign_uuid", (sessionID) => {
-            console.log("Received UUID from server:", sessionID);
-            const currentTime = Date.now();
-            localStorage.setItem("sessionID", sessionID); // Store UUID in localStorage
-            localStorage.setItem("sessionTimestamp", currentTime.toString()); // Store timestamp
-            localStorage.setItem("name", name);
-        });
-
-        socket.on("connect", onConnect);
-        socket.on("disconnect", onDisconnect);
-
-        socket.on("user_joined", (users) => {
-            console.log("User joined:", users);
-            setUsersList((prevUsers) => Array.isArray(users) ? [...prevUsers, ...users] : prevUsers);
-        });
-
-        socket.on("team_update_full", (updatedTeams) => {
-            setTeamMembers(updatedTeams);
-        });
-
-        socket.on("team_full", (message) => {
-            setError(message);
-            setTimeout(() => setError(null), 3000);
-        });
-
-        socket.emit("join_room", connectionId, name, localStorage.getItem("sessionID"));
-        socket.on("room_joined", (playersInRoom) => {
-            console.log("Room joined successfully:", playersInRoom);
-            setUsersList(Array.isArray(playersInRoom) ? playersInRoom : []); // Ensure usersList is always an array
-        });
-
-        // Emit join_room event with connectionId, name, and UUID
-        // const sessionID = localStorage.getItem("sessionID");
-        // console.log("Joining room with connectionId:", connectionId, "and sessionID:", sessionID);
-        // socket.emit("join_room", { connectionId, name, sessionID });
-
-        // socket.emit('choose_team', 'red');
-
-        // socket.on('team_chosen', ({ sessionID, team }) => {
-        //     console.log(`User ${sessionID} joined team ${team}`);
-        // });
-
-        // socket.on('invalid_team', (message) => {
-        //     console.error(message);
-        // });
-
-        // Ensure the socket disconnects when the component unmounts
-        return () => {
-            console.log("Cleaning up socket connection...");
-            socket.off("connect", onConnect);
-            socket.off("disconnect", onDisconnect);
-            socket.off("assign_uuid");
-            socket.disconnect(); // Explicitly disconnect the socket
-        };
-    }, [name, connectionId]);
-
-    const handleJoinTeam = (team: 'red' | 'blue' | 'spectator' | 'admin') => {
-        const sessionID = localStorage.getItem("sessionID");
-        if (!sessionID) return;
-        socket.emit("join_team", { team, sessionID });
     };
 
+    const handleLanguageToggle = (lang: string) => {
+        setSelectedLanguages(prev => 
+            prev.includes(lang) 
+                ? prev.filter(l => l !== lang)
+                : [...prev, lang]
+        );
+    };
+
+    const handleStartGame = () => {
+        if (selectedLanguages.length === 0) {
+            setError("Veuillez sélectionner au moins un langage");
+            return;
+        }
+        
+        const queryParams = new URLSearchParams({
+            languages: selectedLanguages.join(','),
+            id: connectionId || '',
+            difficulty: difficulte.toString(),
+            duration: duree.toString()
+        }).toString();
+        
+        router.push(`/in-game?${queryParams}`);
+    };
+
+    const goHome = () => {
+        router.push('/');
+    };
+
+    // Ajout de la fonction getLanguages
+    const getLanguages = () => [
+        { id: "JavaScript", label: "JavaScript" },
+        { id: "CSS", label: "CSS" },
+        { id: "HTML", label: "HTML" },
+        { id: "C#", label: "C#" },
+        { id: "PHP", label: "PHP" },
+        { id: "Python", label: "Python" }
+    ];
+
     return (
-
-
-
         <div className="min-h-screen flex flex-col items-center justify-center p-4">
 
             {/* Room ID */}
@@ -366,19 +298,17 @@ export default function Page() {
                                         <p className="font-medium mb-2">Langages :</p>
                                         <div className="grid grid-cols-3 gap-4">
                                             {getLanguages().map((lang) => (
-                                                <div
-                                                    key={lang.id}
-                                                    className="flex items-center space-x-3 p-1"
-                                                >
-                                                    <label htmlFor={lang.id} className="">
-                                                        {lang.label}
+                                                <div key={lang.id} className="flex items-center space-x-3 p-1">
+                                                    <label htmlFor={lang.id} className="flex items-center cursor-pointer">
+                                                        <input
+                                                            type="checkbox"
+                                                            id={lang.id}
+                                                            checked={selectedLanguages.includes(lang.id)}
+                                                            onChange={() => handleLanguageToggle(lang.id)}
+                                                            className="w-5 h-5 cursor-pointer"
+                                                        />
+                                                        <span className="ml-2">{lang.label}</span>
                                                     </label>
-                                                    <input
-                                                        type="checkbox"
-                                                        id={lang.id}
-                                                        className="w-5 h-5 cursor-pointer"
-                                                    />
-
                                                 </div>
                                             ))}
                                         </div>
@@ -454,7 +384,7 @@ export default function Page() {
                         {/* Bouton pour lancer la partie */}
                         <div className="mt-6 flex justify-center">
                             <button
-                                onClick={() => redirect("/in-game")}
+                                onClick={handleStartGame}
                                 className="py-3 px-6 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600"
                             >
                                 Lancer la Partie

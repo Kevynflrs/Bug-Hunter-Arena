@@ -51,7 +51,11 @@ const Question = forwardRef(({ onQuestionChange, team = 'blue' }: QuestionProps,
       setIsLoading(true);
       setError(null);
       
-      const response = await fetch('/api/getQuestion', {
+      // Récupérer les langages depuis l'URL
+      const params = new URLSearchParams(window.location.search);
+      const languages = params.get('languages') || '';
+      
+      const response = await fetch(`/api/getQuestion?languages=${languages}`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
