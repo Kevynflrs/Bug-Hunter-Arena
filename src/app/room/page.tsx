@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { redirect } from "next/navigation";
 
 import { useSearchParams } from "next/navigation";
-import { useRouter } from "next/navigation"; // Remplacez l'importation
+import { useRouter } from "next/navigation";
 
 import { getSocket } from "@/socket";
 
@@ -245,25 +245,6 @@ export default function Page() {
                             </div>
                         ))}
                     </div>
-
-                    {/* Équipe Spectateur */}
-                    {/* <div>
-                      <div className="flex items-center justify-between mb-2">
-                      <p className="font-semibold">Spectateurs</p>
-                      <button onClick={() => handleJoinTeam('spectator')} className="bg-gray-600 text-white text-sm px-3 py-1 rounded">
-                      Rejoindre
-                      </button>
-                      </div>
-                      {teamMembers.spectator.map((user, index) => (
-                        <div key={index} className="flex items-center space-x-2 mb-2">
-                        <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="profile" className="w-6 h-6 rounded-full bg-gray-300 border" />
-                        <span>{user}</span>
-                        </div>
-                        ))}
-                        </div> */}
-
-
-
                 </div>
                 {/* Right Column: Maîtres du Jeu + Paramètre de Jeu */}
                 <div className="flex flex-col space-y-4">
