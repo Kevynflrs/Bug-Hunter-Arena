@@ -2,67 +2,86 @@
 import { useEffect, useState } from 'react';
 import { socket } from '@/socket';
 
-const UUID_EXPIRATION_TIME = 5 * 60 * 1000; // 5 minutes in milliseconds
+const TEAMS = ['red', 'blue', 'spectator', 'admin'];
 
-function Editor() {
-  const [isConnected, setIsConnected] = useState(false);
-  const [transport, setTransport] = useState("N/A");
+export default function TeamSelectionPage() {
+  const [sessionID, setSessionID] = useState(null);
+  const [teamMembers, setTeamMembers] = useState({
+    red: [],
+    blue: [],
+    spectator: [],
+    admin: [],
+  });
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    function onConnect() {
-      setIsConnected(true);
-      setTransport(socket.io.engine.transport.name);
+    // Request a session UUID when the component mounts
+    socket.emit('request_uuid');
 
-      console.log('Connected to socket:', socket.id);
-
-      socket.io.engine.on("upgrade", (transport) => {
-        setTransport(transport.name);
-      });
-
-      // Check if UUID exists and is valid
-      const storedUUID = localStorage.getItem('sessionID');
-      const storedTimestamp = localStorage.getItem('sessionTimestamp');
-      const currentTime = Date.now();
-
-      if (storedUUID && storedTimestamp && currentTime - storedTimestamp < UUID_EXPIRATION_TIME) {
-        console.log('Reusing existing UUID:', storedUUID);
-        localStorage.setItem('sessionTimestamp', currentTime); // Reset the timer
-      } else {
-        console.log('Requesting new UUID from server');
-        socket.emit('request_uuid'); // Request a new UUID from the server
-      }
-    }
-
-    function onDisconnect() {
-      setIsConnected(false);
-      console.log('Disconnected from socket, reason:', socket.disconnected);
-      setTransport("N/A");
-    }
-
-    // Listen for UUID assignment from the server
-    socket.on('assign_uuid', (sessionID) => {
-      console.log('Received UUID from server:', sessionID);
-      const currentTime = Date.now();
-      localStorage.setItem('sessionID', sessionID); // Store UUID in localStorage
-      localStorage.setItem('sessionTimestamp', currentTime); // Store timestamp
+    socket.on('assign_uuid', (uuid) => {
+      setSessionID(uuid);
+      console.log('Assigned UUID:', uuid);
     });
 
-    socket.on("connect", onConnect);
-    socket.on("disconnect", onDisconnect);
+    socket.on('team_update_full', (updatedTeams) => {
+      setTeamMembers(updatedTeams);
+    });
+
+    socket.on('team_full', (message) => {
+      setError(message);
+      setTimeout(() => setError(null), 3000); // Clear after 3s
+    });
 
     return () => {
-      socket.off("connect", onConnect);
-      socket.off("disconnect", onDisconnect);
-      socket.off("assign_uuid");
+      socket.off('assign_uuid');
+      socket.off('team_update');
+      socket.off('team_full');
     };
   }, []);
 
+  const handleJoinTeam = (team) => {
+    if (!sessionID) return;
+    socket.emit('join_team', { team, sessionID });
+  };
+
   return (
-    <div>
-      <p>Status: {isConnected ? "connected" : "disconnected"}</p>
-      <p>Transport: {transport}</p>
+    <div className="p-8">
+      <h1 className="text-2xl font-bold mb-4">Selection Équipe</h1>
+      {error && (
+        <div className="mb-4 text-red-500 font-semibold">{error}</div>
+      )}
+      <div className="flex gap-4 mb-8">
+        {TEAMS.map((team) => (
+          <button
+            key={team}
+            onClick={() => handleJoinTeam(team)}
+            className={`px-4 py-2 font-semibold text-white rounded ${
+              team === 'red'
+                ? 'bg-red-600'
+                : team === 'blue'
+                ? 'bg-blue-600'
+                : team === 'admin'
+                ? 'bg-yellow-600'
+                : 'bg-gray-600'
+            }`}
+          >
+            Rejoindre {team.charAt(0).toUpperCase() + team.slice(1)} Team
+          </button>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-4 gap-4">
+        {TEAMS.map((team) => (
+          <div key={team} className="border p-4 rounded">
+            <h2 className="font-bold mb-2 capitalize">{team} Team</h2>
+            <ul>
+              {teamMembers[team].map((id) => (
+                <li key={id}>{id}</li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
-
-export default Editor;
