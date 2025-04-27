@@ -26,7 +26,6 @@ export default function Page() {
   const nickname = searchParams.get("nickname");
   // const router = useRouter();
   const [name, setName] = useState<string>(nickname || ""); // Initialize with an empty string or a default value
-  const [usersList, setUsersList] = useState<string[]>([]); // State to store the list of users
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [toastType, setToastType] = useState<"error" | "success" | "info">(
@@ -121,11 +120,82 @@ export default function Page() {
           localStorage.setItem("name", name);
         });
 
-        socket.on("user_joined", (users) => {
-          console.log("User joined:", users);
-          setUsersList((prevUsers) => Array.isArray(users) ? [...prevUsers, ...users] : prevUsers);
+        socket.on("user_joined", (user) => {
+          console.log("User joined:", user);
+          // setUsersList((prevUsers) => Array.isArray(user) ? [...prevUsers, ...user] : prevUsers);
 
-          
+          if (user.team === "spectator") {
+            setTeamSpectator((prevSpectators) => {
+              if (!prevSpectators.includes(user.name)) {
+                setTeamRed((prevRed) =>
+                  prevRed.filter((member) => member !== user.name)
+                );
+                setTeamBlue((prevBlue) =>
+                  prevBlue.filter((member) => member !== user.name)
+                );
+                setTeamAdmin((prevAdmin) =>
+                  prevAdmin.filter((member) => member !== user.name)
+                );
+                return [...prevSpectators, user.name];
+              }
+              return prevSpectators;
+            });
+          }
+
+          if (user.team === "red") {
+            setTeamRed((prevRed) => {
+              if (!prevRed.includes(user.name)) {
+                setTeamSpectator((prevRed) =>
+                  prevRed.filter((member) => member !== user.name)
+                );
+                setTeamBlue((prevBlue) =>
+                  prevBlue.filter((member) => member !== user.name)
+                );
+                setTeamAdmin((prevAdmin) =>
+                  prevAdmin.filter((member) => member !== user.name)
+                );
+                return [...prevRed, user.name];
+              }
+              return prevRed;
+            });
+          }
+          if (user.team === "blue") {
+            setTeamBlue((prevBlue) => {
+              if (!prevBlue.includes(user.name)) {    
+                setTeamSpectator((prevRed) =>
+                  prevRed.filter((member) => member !== user.name)
+                );
+                setTeamRed((prevBlue) =>
+                  prevBlue.filter((member) => member !== user.name)
+                );
+                setTeamAdmin((prevAdmin) =>
+                  prevAdmin.filter((member) => member !== user.name)
+                );
+                
+                return [...prevBlue, user.name];
+              }
+              return prevBlue;
+            });
+          }
+          if (user.team === "admin") {
+            setTeamAdmin((prevAdmin) => {
+              if (!prevAdmin.includes(user.name)) {
+                setTeamSpectator((prevRed) =>
+                  prevRed.filter((member) => member !== user.name)
+                );
+                setTeamRed((prevBlue) =>
+                  prevBlue.filter((member) => member !== user.name)
+                );
+                setTeamBlue((prevAdmin) =>
+                  prevAdmin.filter((member) => member !== user.name)
+                );
+
+                return [...prevAdmin, user.name];
+              }
+              return prevAdmin;
+            });
+          }
+
 
         });
 
@@ -133,8 +203,7 @@ export default function Page() {
 
         socket.on("room_joined", (playersInRoom) => {
           console.log("Room joined successfully:", playersInRoom);
-          setUsersList(Array.isArray(playersInRoom) ? playersInRoom : []); // Ensure usersList is always an array
-
+        
           interface Player {
             name: string;
             team: 'spectator' | 'red' | 'blue' | 'admin';
