@@ -93,7 +93,7 @@ const App = () => {
     // Si aucun pseudo n'est fourni, attribuer un nom aléatoire
     const finalNickname = nickname || defaultNames[Math.floor(Math.random() * defaultNames.length)];
 
-    const roomId = await handleRoomCreation();
+    const roomId = await handleRoomCreation(finalNickname);
     router.push(`/room?id=${roomId}&nickname=${finalNickname}`); // Use router.push for navigation
   };
 
