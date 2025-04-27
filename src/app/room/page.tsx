@@ -189,7 +189,7 @@ export default function Page() {
                             <button
                                 type="button"
                                 className="text-gray-500 hover:text-gray-700 cursor-pointer"
-                                title="Refresh"
+                                title="Retourner à l'accueil"
                                 onClick={goHome}
                             >
                                 <img
