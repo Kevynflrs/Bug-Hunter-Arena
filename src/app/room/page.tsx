@@ -320,6 +320,7 @@ export default function Page() {
                                         <button
                                             type="button"
                                             className="text-green-500 hover:text-green-700 flex items-center"
+                                            onClick={handleStartGame}
                                         >
                                             <span className="mr-2">Lancer la partie</span>
                                             <img
@@ -379,16 +380,6 @@ export default function Page() {
                                     </div>
                                 </div>
                             </div>
-                        </div>
-
-                        {/* Bouton pour lancer la partie */}
-                        <div className="mt-6 flex justify-center">
-                            <button
-                                onClick={handleStartGame}
-                                className="py-3 px-6 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600"
-                            >
-                                Lancer la Partie
-                            </button>
                         </div>
                     </div>
                 </div>
