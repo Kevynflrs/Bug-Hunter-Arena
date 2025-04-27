@@ -104,6 +104,7 @@ export default function Page() {
                 });
 
                 socket.on("team_update_full", (updatedTeams) => {
+                    console.log("Team update received:", updatedTeams);
                     setTeamMembers(updatedTeams);
                 });
 
@@ -239,7 +240,7 @@ export default function Page() {
                                     alt="profile"
                                     className="w-6 h-6 rounded-full bg-gray-300 border"
                                 />
-                                <span>{name}</span>
+                                <span>{user}</span>
                             </div>
                         ))}
                     </div>
@@ -265,7 +266,7 @@ export default function Page() {
                                     alt="profile"
                                     className="w-6 h-6 rounded-full bg-gray-300 border"
                                 />
-                                <span>{name}</span>
+                                <span>{user}</span>
                             </div>
                         ))}
                     </div>
@@ -301,7 +302,7 @@ export default function Page() {
                             {teamMembers.admin.map((user, index) => (
                                 <div key={index} className="flex items-center space-x-2 mb-2">
                                     <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="profile" className="w-6 h-6 rounded-full bg-gray-300 border" />
-                                    <span>{name}</span>
+                                    <span>{user}</span>
                                 </div>
                             ))}
                         </div>
@@ -329,7 +330,7 @@ export default function Page() {
                             {teamMembers.spectator.map((user, index) => (
                                 <div key={index} className="flex items-center space-x-2 mb-2">
                                     <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="profile" className="w-6 h-6 rounded-full bg-gray-300 border" />
-                                    <span>{name}</span>
+                                    <span>{user}</span>
                                 </div>
                             ))}
                         </div>
