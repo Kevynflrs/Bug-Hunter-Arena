@@ -7,9 +7,9 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const languages = searchParams.get("languages")?.split(",") || [];
 
-    if (!mongoose.connection.readyState) {
-      await mongoose.connect(process.env.MONGODB_URI!);
-    }
+    // if (!mongoose.connection.readyState) {
+    //   await mongoose.connect(process.env.MONGODB_URI!);
+    // }
 
     // Construire la requête avec les langages sélectionnés
     const query = languages.length > 0 ? { theme: { $in: languages } } : {};

@@ -22,11 +22,11 @@ export default function InGamePage() {
     blue: [
       { name: "PingPong", role: "JavaScript" },
       { name: "CodeMaster", role: "PHP" },
-      { name: "BugBuster", role: "C++" }
+      { name: "BugBuster", role: "Cpp" }
     ],
     red: [
       { name: "AlQuaïda", role: "Mobile" },
-      { name: "McGrégor", role: "C#" }
+      { name: "McGrégor", role: "Csharp" }
     ],
     creator: [
       { name: "GameMaster", role: "Maître du jeu" }

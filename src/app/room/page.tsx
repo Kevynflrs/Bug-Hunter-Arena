@@ -74,12 +74,11 @@ export default function Page() {
 
     // Ajout de la fonction getLanguages
     const getLanguages = () => [
-        { id: "JavaScript", label: "JavaScript" },
-        { id: "CSS", label: "CSS" },
-        { id: "HTML", label: "HTML" },
-        { id: "C#", label: "C#" },
+        { id: "Js", label: "JavaScript" },
+        { id: "Cpp", label: "C++" },
+        { id: "Mobile", label: "Mobile" },
+        { id: "Csharp", label: "C#" },
         { id: "PHP", label: "PHP" },
-        { id: "Python", label: "Python" }
     ];
 
     return (
