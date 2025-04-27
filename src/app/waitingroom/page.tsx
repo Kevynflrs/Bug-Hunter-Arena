@@ -108,8 +108,6 @@ export default function Page() {
         socket.off("disconnect");
         socket.off("assign_uuid");
         socket.off("user_joined");
-        socket.off("team_update_full");
-        socket.off("team_full");
         socket.off("room_joined");
 
         socket.on("connect", onConnect);
@@ -126,16 +124,9 @@ export default function Page() {
         socket.on("user_joined", (users) => {
           console.log("User joined:", users);
           setUsersList((prevUsers) => Array.isArray(users) ? [...prevUsers, ...users] : prevUsers);
-          setTeamRed((prevRed) => Array.isArray(users) ? [...prevRed, ...users] : prevRed);
-          setTeamBlue((prevBlue) => Array.isArray(users) ? [...prevBlue, ...users] : prevBlue);
-          setTeamSpectator((prevSpectators) => Array.isArray(users) ? [...prevSpectators, ...users] : prevSpectators);
-          setTeamAdmin((prevAdmin) => Array.isArray(users) ? [...prevAdmin, ...users] : prevAdmin);
-        });
 
+          
 
-        socket.on("team_full", (message) => {
-          setError(message);
-          setTimeout(() => setError(null), 3000);
         });
 
         socket.emit("join_room", connectionId, name, localStorage.getItem("sessionID"), "spectator");
@@ -252,8 +243,6 @@ export default function Page() {
         socket.off("disconnect");
         socket.off("assign_uuid");
         socket.off("user_joined");
-        socket.off("team_update_full");
-        socket.off("team_full");
         socket.off("room_joined");
         socket.disconnect(); // Explicitly disconnect the socket
       }
