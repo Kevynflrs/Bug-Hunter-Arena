@@ -212,7 +212,7 @@ export default function Page() {
                             <p className="font-semibold">Équipe Bleu</p>
                             <button
                                 onClick={() => handleJoinTeam('blue')}
-                                className="border border-gray-300 text-sm px-3 py-1 rounded flex items-center"
+                                className="border border-gray-300 text-sm px-3 py-1 rounded flex items-center hover:bg-gray-50 hover:shadow-md transition duration-200"
                             >
                                 <span
                                     className="w-3 h-3 bg-blue-600 rounded-full inline-block mr-2"
@@ -238,7 +238,7 @@ export default function Page() {
                             <p className="font-semibold">Équipe Rouge</p>
                             <button
                                 onClick={() => handleJoinTeam('red')}
-                                className="border border-gray-300 text-sm px-3 py-1 rounded flex items-center"
+                                className="border border-gray-300 text-sm px-3 py-1 rounded flex items-center hover:bg-gray-50 hover:shadow-md transition duration-200"
                             >
                                 <span
                                     className="w-3 h-3 bg-red-600 rounded-full inline-block mr-2"
@@ -275,7 +275,7 @@ export default function Page() {
                             </div>
                             <button
                                 onClick={() => handleJoinTeam('admin')}
-                                className="border border-gray-300 text-sm px-3 py-1 rounded flex items-center"
+                                className="border border-gray-300 text-sm px-3 py-1 rounded flex items-center hover:bg-gray-50 hover:shadow-md transition duration-200"
                             >
                                 <span
                                     className="w-3 h-3 bg-yellow-500 rounded-full inline-block mr-2"
@@ -303,7 +303,7 @@ export default function Page() {
                             </div>
                             <button
                                 onClick={() => handleJoinTeam('spectator')}
-                                className="border border-gray-300 text-sm px-3 py-1 rounded flex items-center"
+                                className="border border-gray-300 text-sm px-3 py-1 rounded flex items-center hover:bg-gray-50 hover:shadow-md transition duration-200"
                             >
                                 <span
                                     className="w-3 h-3 bg-gray-600 rounded-full inline-block mr-2"
