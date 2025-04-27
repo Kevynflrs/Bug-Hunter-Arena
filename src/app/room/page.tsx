@@ -47,6 +47,80 @@ export default function Page() {
     }
 
     useEffect(() => {
+        let isMounted = true; // Track if the component is mounted
+
+        const initializeSocket = () => {
+            if (!socket.connected) {
+                socket.connect(); // Explicitly connect the socket if not already connected
+            }
+
+            function onConnect() {
+                console.log("Connected to socket:", socket.id);
+
+                const storedUUID = localStorage.getItem("sessionID");
+                const storedTimestamp = localStorage.getItem("sessionTimestamp");
+                const currentTime = Date.now();
+
+                if (storedUUID && storedTimestamp && currentTime - Number(storedTimestamp) < UUID_EXPIRATION_TIME) {
+                    console.log("Reusing existing UUID:", storedUUID);
+                    localStorage.setItem("sessionTimestamp", currentTime.toString()); // Reset the timer
+                    setName(localStorage.getItem("name") || ""); // Retrieve the nickname from localStorage
+                } else {
+                    console.log("Requesting new UUID from server");
+                    console.log("Connection ID:", connectionId);
+                    console.log("Nickname:", name);
+                    socket.emit("request_uuid", connectionId); // Request a new UUID from the server
+                }
+            }
+
+            function onDisconnect() {
+                console.log("Disconnected from socket, reason:", socket.disconnected);
+            }
+
+            if (socket) {
+                // Clean up previous listeners to avoid duplicates
+                socket.off("connect");
+                socket.off("disconnect");
+                socket.off("assign_uuid");
+                socket.off("user_joined");
+                socket.off("team_update_full");
+                socket.off("team_full");
+                socket.off("room_joined");
+
+                socket.on("connect", onConnect);
+                socket.on("disconnect", onDisconnect);
+
+                socket.on("assign_uuid", (sessionID) => {
+                    console.log("Received UUID from server:", sessionID);
+                    const currentTime = Date.now();
+                    localStorage.setItem("sessionID", sessionID); // Store UUID in localStorage
+                    localStorage.setItem("sessionTimestamp", currentTime.toString()); // Store timestamp
+                    localStorage.setItem("name", name);
+                });
+
+                socket.on("user_joined", (users) => {
+                    console.log("User joined:", users);
+                    setUsersList((prevUsers) => Array.isArray(users) ? [...prevUsers, ...users] : prevUsers);
+                });
+
+                socket.on("team_update_full", (updatedTeams) => {
+                    setTeamMembers(updatedTeams);
+                });
+
+                socket.on("team_full", (message) => {
+                    setError(message);
+                    setTimeout(() => setError(null), 3000);
+                });
+
+                socket.emit("join_room", connectionId, name, localStorage.getItem("sessionID"));
+
+                socket.on("room_joined", (playersInRoom) => {
+                    console.log("Room joined successfully:", playersInRoom);
+                    setUsersList(Array.isArray(playersInRoom) ? playersInRoom : []); // Ensure usersList is always an array
+                });
+            }
+        };
+
         const fetchRoom = async () => {
             try {
                 const response = await fetch(`/api/getRoomFromId?id=${connectionId}`);
@@ -54,92 +128,30 @@ export default function Page() {
                     throw new Error("Failed to fetch room data");
                 }
                 const data = await response.json();
-                setRoom(data);
+                if (isMounted) setRoom(data); // Only update state if mounted
             } catch (error) {
                 console.error("Error fetching room:", error);
             }
         };
 
         fetchRoom();
+        initializeSocket();
 
-        function onConnect() {
-            console.log("Connected to socket:", socket.id);
-
-            const storedUUID = localStorage.getItem("sessionID");
-            const storedTimestamp = localStorage.getItem("sessionTimestamp");
-            const currentTime = Date.now();
-
-            if (storedUUID && storedTimestamp && currentTime - Number(storedTimestamp) < UUID_EXPIRATION_TIME) {
-                console.log("Reusing existing UUID:", storedUUID);
-                localStorage.setItem("sessionTimestamp", currentTime.toString()); // Reset the timer
-                setName(localStorage.getItem("name") || ""); // Retrieve the nickname from localStorage
-            } else {
-                console.log("Requesting new UUID from server");
-                console.log("Connection ID:", connectionId);
-                console.log("Nickname:", name);
-                socket.emit("request_uuid", connectionId); // Request a new UUID from the server
-            }
-        }
-
-        function onDisconnect() {
-            console.log("Disconnected from socket, reason:", socket.disconnected);
-        }
-
-        socket.on("assign_uuid", (sessionID) => {
-            console.log("Received UUID from server:", sessionID);
-            const currentTime = Date.now();
-            localStorage.setItem("sessionID", sessionID); // Store UUID in localStorage
-            localStorage.setItem("sessionTimestamp", currentTime.toString()); // Store timestamp
-            localStorage.setItem("name", name);
-        });
-
-        socket.on("connect", onConnect);
-        socket.on("disconnect", onDisconnect);
-
-        socket.on("user_joined", (users) => {
-            console.log("User joined:", users);
-            setUsersList((prevUsers) => Array.isArray(users) ? [...prevUsers, ...users] : prevUsers);
-        });
-
-        socket.on("team_update_full", (updatedTeams) => {
-            setTeamMembers(updatedTeams);
-        });
-
-        socket.on("team_full", (message) => {
-            setError(message);
-            setTimeout(() => setError(null), 3000);
-        });
-
-        socket.emit("join_room", connectionId, name, localStorage.getItem("sessionID"));
-        socket.on("room_joined", (playersInRoom) => {
-            console.log("Room joined successfully:", playersInRoom);
-            setUsersList(Array.isArray(playersInRoom) ? playersInRoom : []); // Ensure usersList is always an array
-        });
-
-        // Emit join_room event with connectionId, name, and UUID
-        // const sessionID = localStorage.getItem("sessionID");
-        // console.log("Joining room with connectionId:", connectionId, "and sessionID:", sessionID);
-        // socket.emit("join_room", { connectionId, name, sessionID });
-
-        // socket.emit('choose_team', 'red');
-
-        // socket.on('team_chosen', ({ sessionID, team }) => {
-        //     console.log(`User ${sessionID} joined team ${team}`);
-        // });
-
-        // socket.on('invalid_team', (message) => {
-        //     console.error(message);
-        // });
-
-        // Ensure the socket disconnects when the component unmounts
         return () => {
+            isMounted = false; // Mark as unmounted
             console.log("Cleaning up socket connection...");
-            socket.off("connect", onConnect);
-            socket.off("disconnect", onDisconnect);
-            socket.off("assign_uuid");
-            socket.disconnect(); // Explicitly disconnect the socket
+            if (socket) {
+                socket.off("connect");
+                socket.off("disconnect");
+                socket.off("assign_uuid");
+                socket.off("user_joined");
+                socket.off("team_update_full");
+                socket.off("team_full");
+                socket.off("room_joined");
+                socket.disconnect(); // Explicitly disconnect the socket
+            }
         };
-    }, [name, connectionId]);
+    }, [connectionId, name]);
 
     const handleJoinTeam = (team: 'red' | 'blue' | 'spectator' | 'admin') => {
         const sessionID = localStorage.getItem("sessionID");
@@ -184,12 +196,12 @@ export default function Page() {
                     <div className="flex flex-col mb-4">
                         <div className="flex items-center justify-between">
                             <h2 className="text-xl font-semibold">
-                                {room?.name != null ? room.name : "Loading..."}&#39;s room
+                                {room?.name != null ? `${room.name}'s room` : "Loading..."}
                             </h2>
                             <button
                                 type="button"
-                                className="text-gray-500 hover:text-gray-700"
-                                title="Refresh"
+                                className="text-gray-500 hover:text-gray-700 cursor-pointer"
+                                title="Retourner à l'accueil"
                                 onClick={goHome}
                             >
                                 <img
@@ -210,7 +222,13 @@ export default function Page() {
                     <div className="mb-4">
                         <div className="flex items-center justify-between mb-2">
                             <p className="font-semibold">Équipe Bleu</p>
-                            <button onClick={() => handleJoinTeam('blue')} className="bg-blue-600 text-white text-sm px-3 py-1 rounded">
+                            <button
+                                onClick={() => handleJoinTeam('blue')}
+                                className="border border-gray-300 text-sm px-3 py-1 rounded flex items-center hover:bg-gray-50 hover:shadow-md transition duration-200 cursor-pointer"
+                            >
+                                <span
+                                    className="w-3 h-3 bg-blue-600 rounded-full inline-block mr-2"
+                                ></span>
                                 Rejoindre
                             </button>
                         </div>
@@ -230,7 +248,13 @@ export default function Page() {
                     <div>
                         <div className="flex items-center justify-between mb-2">
                             <p className="font-semibold">Équipe Rouge</p>
-                            <button onClick={() => handleJoinTeam('red')} className="bg-red-600 text-white text-sm px-3 py-1 rounded">
+                            <button
+                                onClick={() => handleJoinTeam('red')}
+                                className="border border-gray-300 text-sm px-3 py-1 rounded flex items-center hover:bg-gray-50 hover:shadow-md transition duration-200 cursor-pointer"
+                            >
+                                <span
+                                    className="w-3 h-3 bg-red-600 rounded-full inline-block mr-2"
+                                ></span>
                                 Rejoindre
                             </button>
                         </div>
@@ -261,7 +285,13 @@ export default function Page() {
                                     />
                                 </span>
                             </div>
-                            <button onClick={() => handleJoinTeam('admin')} className="bg-yellow-500 text-white text-sm px-3 py-1 rounded">
+                            <button
+                                onClick={() => handleJoinTeam('admin')}
+                                className="border border-gray-300 text-sm px-3 py-1 rounded flex items-center hover:bg-gray-50 hover:shadow-md transition duration-200 cursor-pointer"
+                            >
+                                <span
+                                    className="w-3 h-3 bg-yellow-500 rounded-full inline-block mr-2"
+                                ></span>
                                 Rejoindre
                             </button>
                         </div>
@@ -283,7 +313,13 @@ export default function Page() {
                                 <h2 className="text-xl font-semibold">Spectateurs</h2>
                                 <span role="img" aria-label="Spectator" className="text-2xl">🔍</span>
                             </div>
-                            <button onClick={() => handleJoinTeam('spectator')} className="bg-gray-600 text-white text-sm px-3 py-1 rounded">
+                            <button
+                                onClick={() => handleJoinTeam('spectator')}
+                                className="border border-gray-300 text-sm px-3 py-1 rounded flex items-center hover:bg-gray-50 hover:shadow-md transition duration-200 cursor-pointer"
+                            >
+                                <span
+                                    className="w-3 h-3 bg-gray-600 rounded-full inline-block mr-2"
+                                ></span>
                                 Rejoindre
                             </button>
                         </div>
@@ -385,11 +421,11 @@ export default function Page() {
                                     </div>
 
                                     {/* Buttons container */}
-                                    <div className="flex justify-between mt-4">
+                                    <div className="flex justify-between mt-4 ">
                                         {/* Play button */}
                                         <button
                                             type="button"
-                                            className="text-green-500 hover:text-green-700 flex items-center"
+                                            className="text-green-500 hover:text-green-700 flex items-center cursor-pointer"
                                         >
                                             <span className="mr-2">Lancer la partie</span>
                                             <img
@@ -402,7 +438,7 @@ export default function Page() {
                                         {/* Delete button */}
                                         <button
                                             type="button"
-                                            className="text-red-500 hover:text-red-700 flex items-center"
+                                            className="text-red-500 hover:text-red-700 flex items-center cursor-pointer"
                                             onClick={async () => {
                                                 if (
                                                     confirm("Êtes-vous sûr de vouloir supprimer cette partie ?")
@@ -443,7 +479,7 @@ export default function Page() {
                                             <img
                                                 src="/assets/img/trash.png"
                                                 alt="Supprimer la partie"
-                                                className="w-6 h-6"
+                                                className="w-6 h-6 "
                                             />
                                         </button>
                                     </div>
