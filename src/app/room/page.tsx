@@ -23,6 +23,7 @@ export default function Page() {
     const searchParams = useSearchParams();
     const connectionId = searchParams.get("id");
     const nickname = searchParams.get("nickname");
+    const router = useRouter();
     const [name, setName] = useState<string>(nickname || ""); // Initialize with an empty string or a default value
     const [usersList, setUsersList] = useState<string[]>([]); // State to store the list of users
 
