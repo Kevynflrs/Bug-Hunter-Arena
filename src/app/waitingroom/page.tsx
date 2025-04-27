@@ -38,8 +38,6 @@ export default function Page() {
   const [teamAdmin, setTeamAdmin] = useState<string[]>([]);
 
 
-  const [error, setError] = useState<string | null>(null);
-
   const goHome = () => {
     redirect("/");
   };
@@ -65,7 +63,7 @@ export default function Page() {
       return;
     }
     socket.emit("join_room", connectionId, name, localStorage.getItem("sessionID"), team);
-
+    localStorage.setItem("team", team);
     console.log(teamSpectator);
     // socket.emit("join_team", { team, sessionID, connectionId });
   };
@@ -83,9 +81,10 @@ export default function Page() {
 
         const storedUUID = localStorage.getItem("sessionID");
         const storedTimestamp = localStorage.getItem("sessionTimestamp");
+        const storedRoomId = localStorage.getItem("roomId");
         const currentTime = Date.now();
 
-        if (storedUUID && storedTimestamp && currentTime - Number(storedTimestamp) < UUID_EXPIRATION_TIME) {
+        if (storedUUID && storedTimestamp && currentTime - Number(storedTimestamp) < UUID_EXPIRATION_TIME && storedRoomId === connectionId) {
           console.log("Reusing existing UUID:", storedUUID);
           localStorage.setItem("sessionTimestamp", currentTime.toString()); // Reset the timer
           setName(localStorage.getItem("name") || ""); // Retrieve the nickname from localStorage
@@ -118,6 +117,7 @@ export default function Page() {
           localStorage.setItem("sessionID", sessionID); // Store UUID in localStorage
           localStorage.setItem("sessionTimestamp", currentTime.toString()); // Store timestamp
           localStorage.setItem("name", name);
+          localStorage.setItem("team", "spectator");
         });
 
         socket.on("user_joined", (user) => {
@@ -199,7 +199,7 @@ export default function Page() {
 
         });
 
-        socket.emit("join_room", connectionId, name, localStorage.getItem("sessionID"), "spectator");
+        socket.emit("join_room", connectionId, name, localStorage.getItem("sessionID"), localStorage.getItem("team"));
 
         socket.on("room_joined", (playersInRoom) => {
           console.log("Room joined successfully:", playersInRoom);
@@ -366,8 +366,6 @@ export default function Page() {
         />
       )}
 
-      {/* Join team buttons and error display */}
-      {error && <div className="text-red-500 font-semibold mb-4">{error}</div>}
 
       {/* List of users in the room */}
       <div className="grid grid-cols-3 gap-25 w-full h-[700px] max-w-7xl">

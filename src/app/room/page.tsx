@@ -25,9 +25,11 @@ export default function Page() {
     const nickname = searchParams.get("nickname");
     const router = useRouter();
     const [name, setName] = useState<string>(nickname || ""); // Initialize with an empty string or a default value
-    const [usersList, setUsersList] = useState<string[]>([]); // State to store the list of users
 
-    const [teamMembers, setTeamMembers] = useState({ red: [], blue: [], spectator: [], admin: [] });
+    const [teamRed, setTeamRed] = useState<string[]>([]);
+    const [teamBlue, setTeamBlue] = useState<string[]>([]);
+    const [teamSpectator, setTeamSpectator] = useState<string[]>([]);
+    const [teamAdmin, setTeamAdmin] = useState<string[]>([]);
     const [error, setError] = useState<string | null>(null);
 
     const goHome = () => {
@@ -61,7 +63,9 @@ export default function Page() {
                 const storedTimestamp = localStorage.getItem("sessionTimestamp");
                 const currentTime = Date.now();
 
-                if (storedUUID && storedTimestamp && currentTime - Number(storedTimestamp) < UUID_EXPIRATION_TIME) {
+                const storedRoomId = localStorage.getItem("roomId");
+
+                if (storedUUID && storedTimestamp && currentTime - Number(storedTimestamp) < UUID_EXPIRATION_TIME && storedRoomId === connectionId) {
                     console.log("Reusing existing UUID:", storedUUID);
                     localStorage.setItem("sessionTimestamp", currentTime.toString()); // Reset the timer
                     setName(localStorage.getItem("name") || ""); // Retrieve the nickname from localStorage
@@ -83,8 +87,6 @@ export default function Page() {
                 socket.off("disconnect");
                 socket.off("assign_uuid");
                 socket.off("user_joined");
-                socket.off("team_update_full");
-                socket.off("team_full");
                 socket.off("room_joined");
 
                 socket.on("connect", onConnect);
@@ -96,28 +98,173 @@ export default function Page() {
                     localStorage.setItem("sessionID", sessionID); // Store UUID in localStorage
                     localStorage.setItem("sessionTimestamp", currentTime.toString()); // Store timestamp
                     localStorage.setItem("name", name);
+                    localStorage.setItem("team", "admin");
                 });
 
-                socket.on("user_joined", (users) => {
-                    console.log("User joined:", users);
-                    setUsersList((prevUsers) => Array.isArray(users) ? [...prevUsers, ...users] : prevUsers);
+                socket.on("user_joined", (user) => {
+                    console.log("User joined:", user);
+                    // setUsersList((prevUsers) => Array.isArray(user) ? [...prevUsers, ...user] : prevUsers);
+
+                    if (user.team === "spectator") {
+                        setTeamSpectator((prevSpectators) => {
+                            if (!prevSpectators.includes(user.name)) {
+                                setTeamRed((prevRed) =>
+                                    prevRed.filter((member) => member !== user.name)
+                                );
+                                setTeamBlue((prevBlue) =>
+                                    prevBlue.filter((member) => member !== user.name)
+                                );
+                                setTeamAdmin((prevAdmin) =>
+                                    prevAdmin.filter((member) => member !== user.name)
+                                );
+                                return [...prevSpectators, user.name];
+                            }
+                            return prevSpectators;
+                        });
+                    }
+
+                    if (user.team === "red") {
+                        setTeamRed((prevRed) => {
+                            if (!prevRed.includes(user.name)) {
+                                setTeamSpectator((prevRed) =>
+                                    prevRed.filter((member) => member !== user.name)
+                                );
+                                setTeamBlue((prevBlue) =>
+                                    prevBlue.filter((member) => member !== user.name)
+                                );
+                                setTeamAdmin((prevAdmin) =>
+                                    prevAdmin.filter((member) => member !== user.name)
+                                );
+                                return [...prevRed, user.name];
+                            }
+                            return prevRed;
+                        });
+                    }
+                    if (user.team === "blue") {
+                        setTeamBlue((prevBlue) => {
+                            if (!prevBlue.includes(user.name)) {
+                                setTeamSpectator((prevRed) =>
+                                    prevRed.filter((member) => member !== user.name)
+                                );
+                                setTeamRed((prevBlue) =>
+                                    prevBlue.filter((member) => member !== user.name)
+                                );
+                                setTeamAdmin((prevAdmin) =>
+                                    prevAdmin.filter((member) => member !== user.name)
+                                );
+
+                                return [...prevBlue, user.name];
+                            }
+                            return prevBlue;
+                        });
+                    }
+                    if (user.team === "admin") {
+                        setTeamAdmin((prevAdmin) => {
+                            if (!prevAdmin.includes(user.name)) {
+                                setTeamSpectator((prevRed) =>
+                                    prevRed.filter((member) => member !== user.name)
+                                );
+                                setTeamRed((prevBlue) =>
+                                    prevBlue.filter((member) => member !== user.name)
+                                );
+                                setTeamBlue((prevAdmin) =>
+                                    prevAdmin.filter((member) => member !== user.name)
+                                );
+
+                                return [...prevAdmin, user.name];
+                            }
+                            return prevAdmin;
+                        });
+                    }
+
+
                 });
 
-                socket.on("team_update_full", (updatedTeams) => {
-                    console.log("Team update received:", updatedTeams);
-                    setTeamMembers(updatedTeams);
-                });
-
-                socket.on("team_full", (message) => {
-                    setError(message);
-                    setTimeout(() => setError(null), 3000);
-                });
-
-                socket.emit("join_room", connectionId, name, localStorage.getItem("sessionID"));
+                socket.emit("join_room", connectionId, name, localStorage.getItem("sessionID"), localStorage.getItem("team"));
 
                 socket.on("room_joined", (playersInRoom) => {
                     console.log("Room joined successfully:", playersInRoom);
-                    setUsersList(Array.isArray(playersInRoom) ? playersInRoom : []); // Ensure usersList is always an array
+
+                    interface Player {
+                        name: string;
+                        team: 'spectator' | 'red' | 'blue' | 'admin';
+                    }
+
+                    playersInRoom.forEach((user: Player) => {
+                        console.log("User in room:", user);
+
+                        if (user.team === "spectator") {
+                            setTeamSpectator((prevSpectators) => {
+                                if (!prevSpectators.includes(user.name)) {
+                                    setTeamRed((prevRed) =>
+                                        prevRed.filter((member) => member !== user.name)
+                                    );
+                                    setTeamBlue((prevBlue) =>
+                                        prevBlue.filter((member) => member !== user.name)
+                                    );
+                                    setTeamAdmin((prevAdmin) =>
+                                        prevAdmin.filter((member) => member !== user.name)
+                                    );
+                                    return [...prevSpectators, user.name];
+                                }
+                                return prevSpectators;
+                            });
+                        }
+
+                        if (user.team === "red") {
+                            setTeamRed((prevRed) => {
+                                if (!prevRed.includes(user.name)) {
+                                    setTeamSpectator((prevRed) =>
+                                        prevRed.filter((member) => member !== user.name)
+                                    );
+                                    setTeamBlue((prevBlue) =>
+                                        prevBlue.filter((member) => member !== user.name)
+                                    );
+                                    setTeamAdmin((prevAdmin) =>
+                                        prevAdmin.filter((member) => member !== user.name)
+                                    );
+                                    return [...prevRed, user.name];
+                                }
+                                return prevRed;
+                            });
+                        }
+
+                        if (user.team === "blue") {
+                            setTeamBlue((prevBlue) => {
+                                if (!prevBlue.includes(user.name)) {
+                                    setTeamSpectator((prevRed) =>
+                                        prevRed.filter((member) => member !== user.name)
+                                    );
+                                    setTeamRed((prevBlue) =>
+                                        prevBlue.filter((member) => member !== user.name)
+                                    );
+                                    setTeamAdmin((prevAdmin) =>
+                                        prevAdmin.filter((member) => member !== user.name)
+                                    );
+                                    return [...prevBlue, user.name];
+                                }
+                                return prevBlue;
+                            });
+                        }
+
+                        if (user.team === "admin") {
+                            setTeamAdmin((prevAdmin) => {
+                                if (!prevAdmin.includes(user.name)) {
+                                    setTeamSpectator((prevRed) =>
+                                        prevRed.filter((member) => member !== user.name)
+                                    );
+                                    setTeamRed((prevBlue) =>
+                                        prevBlue.filter((member) => member !== user.name)
+                                    );
+                                    setTeamBlue((prevAdmin) =>
+                                        prevAdmin.filter((member) => member !== user.name)
+                                    );
+                                    return [...prevAdmin, user.name];
+                                }
+                                return prevAdmin;
+                            });
+                        }
+                    });
                 });
             }
         };
@@ -218,7 +365,7 @@ export default function Page() {
                         <div className="flex items-center justify-between mb-2">
                             <p className="font-semibold">Équipe Bleu</p>
                         </div>
-                        {teamMembers.blue.map((user, index) => (
+                        {teamBlue.map((user, index) => (
                             <div key={index} className="flex items-center space-x-2 mb-2">
                                 <img
                                     src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
@@ -235,7 +382,7 @@ export default function Page() {
                         <div className="flex items-center justify-between mb-2">
                             <p className="font-semibold">Équipe Rouge</p>
                         </div>
-                        {teamMembers.red.map((user, index) => (
+                        {teamRed.map((user, index) => (
                             <div key={index} className="flex items-center space-x-2 mb-2">
                                 <img
                                     src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
@@ -266,7 +413,7 @@ export default function Page() {
                         {/* Gray line */}
                         <hr className="border-gray-200 mb-4" />
                         <div className="flex items-center space-x-2 mb-2">
-                            {teamMembers.admin.map((user, index) => (
+                            {teamAdmin.map((user, index) => (
                                 <div key={index} className="flex items-center space-x-2 mb-2">
                                     <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="profile" className="w-6 h-6 rounded-full bg-gray-300 border" />
                                     <span>{user}</span>
@@ -285,7 +432,7 @@ export default function Page() {
                         {/* Gray line */}
                         <hr className="border-gray-200 mb-4" />
                         <div className="flex items-center space-x-2 mb-2">
-                            {teamMembers.spectator.map((user, index) => (
+                            {teamSpectator.map((user, index) => (
                                 <div key={index} className="flex items-center space-x-2 mb-2">
                                     <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="profile" className="w-6 h-6 rounded-full bg-gray-300 border" />
                                     <span>{user}</span>
