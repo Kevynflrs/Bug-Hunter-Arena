@@ -37,7 +37,6 @@ export default function Page() {
   const [teamSpectator, setTeamSpectator] = useState<string[]>([]);
   const [teamAdmin, setTeamAdmin] = useState<string[]>([]);
 
-
   const [error, setError] = useState<string | null>(null);
 
   const goHome = () => {
@@ -57,14 +56,20 @@ export default function Page() {
     }
   };
 
-  const handleJoinTeam = (team: 'red' | 'blue' | 'spectator' | 'admin') => {
+  const handleJoinTeam = (team: "red" | "blue" | "spectator" | "admin") => {
     console.log("Joining team:", team); // Add this log
     const sessionID = localStorage.getItem("sessionID");
     if (!sessionID) {
       console.error("No sessionID found in localStorage");
       return;
     }
-    socket.emit("join_room", connectionId, name, localStorage.getItem("sessionID"), team);
+    socket.emit(
+      "join_room",
+      connectionId,
+      name,
+      localStorage.getItem("sessionID"),
+      team
+    );
 
     console.log(teamSpectator);
     // socket.emit("join_team", { team, sessionID, connectionId });
@@ -85,7 +90,11 @@ export default function Page() {
         const storedTimestamp = localStorage.getItem("sessionTimestamp");
         const currentTime = Date.now();
 
-        if (storedUUID && storedTimestamp && currentTime - Number(storedTimestamp) < UUID_EXPIRATION_TIME) {
+        if (
+          storedUUID &&
+          storedTimestamp &&
+          currentTime - Number(storedTimestamp) < UUID_EXPIRATION_TIME
+        ) {
           console.log("Reusing existing UUID:", storedUUID);
           localStorage.setItem("sessionTimestamp", currentTime.toString()); // Reset the timer
           setName(localStorage.getItem("name") || ""); // Retrieve the nickname from localStorage
@@ -161,7 +170,7 @@ export default function Page() {
           }
           if (user.team === "blue") {
             setTeamBlue((prevBlue) => {
-              if (!prevBlue.includes(user.name)) {    
+              if (!prevBlue.includes(user.name)) {
                 setTeamSpectator((prevRed) =>
                   prevRed.filter((member) => member !== user.name)
                 );
@@ -171,7 +180,7 @@ export default function Page() {
                 setTeamAdmin((prevAdmin) =>
                   prevAdmin.filter((member) => member !== user.name)
                 );
-                
+
                 return [...prevBlue, user.name];
               }
               return prevBlue;
@@ -195,18 +204,22 @@ export default function Page() {
               return prevAdmin;
             });
           }
-
-
         });
 
-        socket.emit("join_room", connectionId, name, localStorage.getItem("sessionID"), "spectator");
+        socket.emit(
+          "join_room",
+          connectionId,
+          name,
+          localStorage.getItem("sessionID"),
+          "spectator"
+        );
 
         socket.on("room_joined", (playersInRoom) => {
           console.log("Room joined successfully:", playersInRoom);
-        
+
           interface Player {
             name: string;
-            team: 'spectator' | 'red' | 'blue' | 'admin';
+            team: "spectator" | "red" | "blue" | "admin";
           }
 
           playersInRoom.forEach((user: Player) => {
@@ -320,13 +333,14 @@ export default function Page() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4">
-      {/* Room ID */}
-      <div className="flex items-center justify-center space-x-8">
-        <div className="rounded-2xl border-2 border-gray-200 p-4 mb-4 max-w-5xl flex items-center justify-between">
-          <p className="text-lg font-semibold">
+      {/* Menu */}
+      <div className="flex flex-col md:flex-row items-center justify-center space-y-4 md:space-y-0 md:space-x-8 mb-6 max-w-6xl">
+        {/* Room ID */}
+        <div className="flex flex-1 rounded-2xl border-2 border-gray-200 px-4 py-2 items-center justify-between">
+          <p className="text-lg font-semibold whitespace-nowrap mr-3">
             Room ID: {connectionId || "Loading..."}
           </p>
-          <button type="button" className="ml-2" onClick={handleCopyRoomId}>
+          <button type="button" onClick={handleCopyRoomId}>
             <Image
               src="/assets/img/copy.png"
               alt="Copy"
@@ -338,11 +352,16 @@ export default function Page() {
         </div>
 
         {/* Go Back Button */}
-        <div className="rounded-2xl border-2 border-gray-200 p-4 mb-4 max-w-5xl flex items-center justify-between" onClick={goHome}>
-          <p className="text-lg font-semibold cursor-pointer">retourner à l&apos;accueil</p>
+        <div
+          className="flex flex-none rounded-2xl border-2 border-gray-200 px-4 py-2 items-center justify-between cursor-pointer"
+          onClick={goHome}
+        >
+          <p className="text-lg font-semibold whitespace-nowrap mr-3">
+            retourner à l&apos;accueil
+          </p>
           <button
             type="button"
-            className="ml-2 text-gray-500 hover:text-gray-700"
+            className="text-gray-500 hover:text-gray-700"
             title="go back to home"
           >
             <Image
@@ -350,7 +369,7 @@ export default function Page() {
               alt="Return"
               width={64}
               height={64}
-              className="w-7 h-7 cursor-pointer" 
+              className="w-7 h-7 cursor-pointer"
             />
           </button>
         </div>
@@ -369,9 +388,9 @@ export default function Page() {
       {error && <div className="text-red-500 font-semibold mb-4">{error}</div>}
 
       {/* List of users in the room */}
-      <div className="grid grid-cols-3 gap-25 w-full h-[700px] max-w-7xl">
+      <div className="flex flex-wrap justify-center gap-6 w-full max-w-7xl">
         {/* Équipe Bleue */}
-        <div className="rounded-2xl border-2 border-blue-500 p-6">
+        <div className="flex-1 min-w-[300px] lg:min-w-[350px] max-w-[400px] lg:max-w-[500px] min-h-[650px] rounded-2xl border-2 border-blue-500 p-6 flex flex-col">
           <div className="flex items-center space-x-3 mb-4">
             <h2 className="text-xl font-semibold text-blue-500">Équipe Bleu</h2>
             <Image
@@ -380,19 +399,14 @@ export default function Page() {
               width={32}
               height={32}
             />
-
             <button
               onClick={() => handleJoinTeam("blue")}
-              className="bg-blue-600 text-white text-sm ml-12 px-3 py-1 rounded hover:bg-blue-800 cursor-pointer"
+              className="bg-blue-600 text-white text-sm ml-auto px-3 py-1 rounded hover:bg-blue-800 cursor-pointer"
             >
               Rejoindre
             </button>
           </div>
-
-          {/* Gray line */}
           <hr className="border-gray-200 mb-4" />
-
-          {/* List of blue team members */}
           {teamBlue.map((user, index) => (
             <div key={index} className="flex items-center space-x-2 mb-2">
               <Image
@@ -408,7 +422,7 @@ export default function Page() {
         </div>
 
         {/* Spectateurs */}
-        <div className="rounded-2xl border-2 border-gray-500 p-6">
+        <div className="flex-1 min-w-[300px] lg:min-w-[350px] max-w-[400px] lg:max-w-[500px] min-h-[650px] rounded-2xl border-2 border-gray-500 p-6 flex flex-col">
           <div className="flex items-center space-x-3 mb-4">
             <h2 className="text-xl font-semibold text-gray-500">Spectateurs</h2>
             <Image
@@ -419,34 +433,28 @@ export default function Page() {
             />
             <button
               onClick={() => handleJoinTeam("spectator")}
-              className="bg-gray-600 text-white text-sm ml-12 px-3 py-1 rounded hover:bg-gray-800 cursor-pointer"
+              className="bg-gray-600 text-white text-sm ml-auto px-3 py-1 rounded hover:bg-gray-800 cursor-pointer"
             >
               Rejoindre
             </button>
           </div>
-
-          {/* Gray line */}
           <hr className="border-gray-200 mb-4" />
-
-          {/* List of spectators */}
-          <div className="flex items-center space-x-2 mb-2">
-            {teamSpectator.map((user, index) => (
-              <div key={index} className="flex items-center space-x-2 mb-2">
-                <Image
-                  src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
-                  alt="profile"
-                  className="w-6 h-6 rounded-full bg-gray-300 border"
-                  width={32}
-                  height={32}
-                />
-                <span>{user}</span>
-              </div>
-            ))}
-          </div>
+          {teamSpectator.map((user, index) => (
+            <div key={index} className="flex items-center space-x-2 mb-2">
+              <Image
+                src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
+                alt="profile"
+                className="w-6 h-6 rounded-full bg-gray-300 border"
+                width={32}
+                height={32}
+              />
+              <span>{user}</span>
+            </div>
+          ))}
         </div>
 
         {/* Équipe Rouge */}
-        <div className="rounded-2xl border-2 border-red-500 p-6">
+        <div className="flex-1 min-w-[300px] lg:min-w-[350px] max-w-[400px] lg:max-w-[500px] min-h-[650px] rounded-2xl border-2 border-red-500 p-6 flex flex-col">
           <div className="flex items-center space-x-3 mb-4">
             <h2 className="text-xl font-semibold text-red-500">Équipe Rouge</h2>
             <Image
@@ -457,16 +465,12 @@ export default function Page() {
             />
             <button
               onClick={() => handleJoinTeam("red")}
-              className="bg-red-600 text-white text-sm ml-8 px-3 py-1 rounded hover:bg-red-800 cursor-pointer"
+              className="bg-red-600 text-white text-sm ml-auto px-3 py-1 rounded hover:bg-red-800 cursor-pointer"
             >
               Rejoindre
             </button>
           </div>
-
-          {/* Gray line */}
           <hr className="border-gray-200 mb-4" />
-
-          {/* List of red team members */}
           {teamRed.map((user, index) => (
             <div key={index} className="flex items-center space-x-2 mb-2">
               <Image
