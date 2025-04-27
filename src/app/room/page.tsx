@@ -188,7 +188,7 @@ export default function Page() {
                             </h2>
                             <button
                                 type="button"
-                                className="text-gray-500 hover:text-gray-700"
+                                className="text-gray-500 hover:text-gray-700 cursor-pointer"
                                 title="Refresh"
                                 onClick={goHome}
                             >
@@ -212,7 +212,7 @@ export default function Page() {
                             <p className="font-semibold">Équipe Bleu</p>
                             <button
                                 onClick={() => handleJoinTeam('blue')}
-                                className="border border-gray-300 text-sm px-3 py-1 rounded flex items-center hover:bg-gray-50 hover:shadow-md transition duration-200"
+                                className="border border-gray-300 text-sm px-3 py-1 rounded flex items-center hover:bg-gray-50 hover:shadow-md transition duration-200 cursor-pointer"
                             >
                                 <span
                                     className="w-3 h-3 bg-blue-600 rounded-full inline-block mr-2"
@@ -238,7 +238,7 @@ export default function Page() {
                             <p className="font-semibold">Équipe Rouge</p>
                             <button
                                 onClick={() => handleJoinTeam('red')}
-                                className="border border-gray-300 text-sm px-3 py-1 rounded flex items-center hover:bg-gray-50 hover:shadow-md transition duration-200"
+                                className="border border-gray-300 text-sm px-3 py-1 rounded flex items-center hover:bg-gray-50 hover:shadow-md transition duration-200 cursor-pointer"
                             >
                                 <span
                                     className="w-3 h-3 bg-red-600 rounded-full inline-block mr-2"
@@ -275,7 +275,7 @@ export default function Page() {
                             </div>
                             <button
                                 onClick={() => handleJoinTeam('admin')}
-                                className="border border-gray-300 text-sm px-3 py-1 rounded flex items-center hover:bg-gray-50 hover:shadow-md transition duration-200"
+                                className="border border-gray-300 text-sm px-3 py-1 rounded flex items-center hover:bg-gray-50 hover:shadow-md transition duration-200 cursor-pointer"
                             >
                                 <span
                                     className="w-3 h-3 bg-yellow-500 rounded-full inline-block mr-2"
@@ -303,7 +303,7 @@ export default function Page() {
                             </div>
                             <button
                                 onClick={() => handleJoinTeam('spectator')}
-                                className="border border-gray-300 text-sm px-3 py-1 rounded flex items-center hover:bg-gray-50 hover:shadow-md transition duration-200"
+                                className="border border-gray-300 text-sm px-3 py-1 rounded flex items-center hover:bg-gray-50 hover:shadow-md transition duration-200 cursor-pointer"
                             >
                                 <span
                                     className="w-3 h-3 bg-gray-600 rounded-full inline-block mr-2"
@@ -409,11 +409,11 @@ export default function Page() {
                                     </div>
 
                                     {/* Buttons container */}
-                                    <div className="flex justify-between mt-4">
+                                    <div className="flex justify-between mt-4 ">
                                         {/* Play button */}
                                         <button
                                             type="button"
-                                            className="text-green-500 hover:text-green-700 flex items-center"
+                                            className="text-green-500 hover:text-green-700 flex items-center cursor-pointer"
                                         >
                                             <span className="mr-2">Lancer la partie</span>
                                             <img
@@ -426,7 +426,7 @@ export default function Page() {
                                         {/* Delete button */}
                                         <button
                                             type="button"
-                                            className="text-red-500 hover:text-red-700 flex items-center"
+                                            className="text-red-500 hover:text-red-700 flex items-center cursor-pointer"
                                             onClick={async () => {
                                                 if (
                                                     confirm("Êtes-vous sûr de vouloir supprimer cette partie ?")
@@ -467,7 +467,7 @@ export default function Page() {
                                             <img
                                                 src="/assets/img/trash.png"
                                                 alt="Supprimer la partie"
-                                                className="w-6 h-6"
+                                                className="w-6 h-6 "
                                             />
                                         </button>
                                     </div>
