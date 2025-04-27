@@ -62,20 +62,22 @@ app.prepare().then(async () => {
       });
 
       // Handle room joining
-      socket.on('join_room', async (roomId, name, sessionID) => {
+      socket.on('join_room', async (roomId, name, sessionID, team) => {
         console.log(`User ${socket.id} joining room: ${roomId}`);
         socket.join(roomId);
 
         // Get all sockets in the room
 
-        socket.data.name = name;
+        socket.data.user = {
+          sessionID,
+          name,
+          team,
+        };
         const socketsInRoom = await io.in(roomId).fetchSockets();
-        const playersInRoom = socketsInRoom.map((s) => s.data?.name);
+        const playersInRoom = socketsInRoom.map((s) => s.data?.user);
 
         // Notify the user that they have joined the room
         socket.emit('room_joined', playersInRoom);
-
-        let team = 'none';
         // Notify other users in the room that a new user has joined
         socket.to(roomId).emit('user_joined', { name, sessionID, team });
 
@@ -120,6 +122,9 @@ app.prepare().then(async () => {
           socket.emit('invalid_team', 'Invalid team selected.');
           return;
         }
+
+
+
 
         // Remove user from all other teams
         for (const t of Object.keys(teams)) {
