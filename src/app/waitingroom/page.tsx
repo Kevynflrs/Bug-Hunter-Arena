@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { redirect } from "next/navigation";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
+import Toast from "@/components/Toast";
 // import { useRouter } from "next/navigation";
 
 import { getSocket } from "@/socket";
@@ -26,6 +27,10 @@ export default function Page() {
   // const router = useRouter();
   const [name, setName] = useState<string>(nickname || ""); // Initialize with an empty string or a default value
   const [usersList, setUsersList] = useState<string[]>([]); // State to store the list of users
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastType, setToastType] = useState<"error" | "success" | "info">("info");
+
 
   const [teamMembers, setTeamMembers] = useState({
     red: [],
@@ -38,6 +43,19 @@ export default function Page() {
   const goHome = () => {
     redirect("/");
   };
+
+  const handleCopyRoomId = () => {
+    if (connectionId) {
+      navigator.clipboard.writeText(connectionId);
+      setToastMessage("Room ID copied to clipboard!");
+      setToastType("success"); // Définir le type comme succès
+      setShowToast(true);
+    } else {
+      setToastMessage("Failed to copy Room ID!");
+      setToastType("error"); // Définir le type comme erreur
+      setShowToast(true);
+    }
+};
 
   useEffect(() => {
     const fetchRoom = async () => {
@@ -151,6 +169,8 @@ export default function Page() {
     socket.emit("join_team", { team, sessionID });
   };
 
+
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4">
       {/* Room ID */}
@@ -162,12 +182,7 @@ export default function Page() {
           <button
             type="button"
             className="ml-2"
-            onClick={() => {
-              if (connectionId) {
-                navigator.clipboard.writeText(connectionId);
-                alert("Room ID copied to clipboard!");
-              }
-            }}
+            onClick={handleCopyRoomId}
           >
             <Image
               src="/assets/img/copy.png"
@@ -198,6 +213,15 @@ export default function Page() {
           </button>
         </div>
       </div>
+
+      {/* Affiche le toast si nécessaire */}
+      {showToast && (
+        <Toast
+          message={toastMessage}
+          type={toastType} // Passez le type de toast
+          onClose={() => setShowToast(false)}
+        />
+      )}
 
       {/* Join team buttons and error display */}
       {error && <div className="text-red-500 font-semibold mb-4">{error}</div>}
