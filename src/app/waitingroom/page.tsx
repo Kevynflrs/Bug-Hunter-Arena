@@ -29,8 +29,9 @@ export default function Page() {
   const [usersList, setUsersList] = useState<string[]>([]); // State to store the list of users
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
-  const [toastType, setToastType] = useState<"error" | "success" | "info">("info");
-
+  const [toastType, setToastType] = useState<"error" | "success" | "info">(
+    "info"
+  );
 
   const [teamMembers, setTeamMembers] = useState({
     red: [],
@@ -55,7 +56,7 @@ export default function Page() {
       setToastType("error");
       setShowToast(true);
     }
-};
+  };
 
   useEffect(() => {
     const fetchRoom = async () => {
@@ -169,8 +170,6 @@ export default function Page() {
     socket.emit("join_team", { team, sessionID });
   };
 
-
-
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4">
       {/* Room ID */}
@@ -179,11 +178,7 @@ export default function Page() {
           <p className="text-lg font-semibold">
             Room ID: {connectionId || "Loading..."}
           </p>
-          <button
-            type="button"
-            className="ml-2"
-            onClick={handleCopyRoomId}
-          >
+          <button type="button" className="ml-2" onClick={handleCopyRoomId}>
             <Image
               src="/assets/img/copy.png"
               alt="Copy"
@@ -257,6 +252,8 @@ export default function Page() {
                 src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
                 alt="profile"
                 className="w-6 h-6 rounded-full bg-gray-300 border"
+                width={32}
+                height={32}
               />
               <span>{name}</span>
             </div>
@@ -292,6 +289,8 @@ export default function Page() {
                   src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
                   alt="profile"
                   className="w-6 h-6 rounded-full bg-gray-300 border"
+                  width={32}
+                  height={32}
                 />
                 <span>{name}</span>
               </div>
@@ -327,6 +326,8 @@ export default function Page() {
                 src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
                 alt="profile"
                 className="w-6 h-6 rounded-full bg-gray-300 border"
+                width={32}
+                height={32}
               />
               <span>{name}</span>
             </div>
