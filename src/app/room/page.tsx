@@ -1,10 +1,28 @@
-"use client";
+"use client"; // If using the Next.js App Router
+import React, { useEffect, useState } from "react";
+import { redirect } from "next/navigation";
 
-import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
+
+import { getSocket } from "@/socket";
+
+const socket = getSocket();
+
+const UUID_EXPIRATION_TIME = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 export default function Page() {
+    interface IRoom extends Document {
+        scores_a: number;
+        scores_b: number;
+        name: string;
+        connectionId: number;
+    }
+
+    const [room, setRoom] = useState<IRoom | null>(null);
     const searchParams = useSearchParams();
+    const connectionId = searchParams.get("id");
+    const nickname = searchParams.get("nickname");
     const router = useRouter();
     const [name, setName] = useState<string>(nickname || ""); // Initialize with an empty string or a default value
 
@@ -13,12 +31,22 @@ export default function Page() {
     const [teamSpectator, setTeamSpectator] = useState<string[]>([]);
     const [teamAdmin, setTeamAdmin] = useState<string[]>([]);
     const [error, setError] = useState<string | null>(null);
-    const [teamMembers, setTeamMembers] = useState({
-        blue: [],
-        red: [],
-        admin: [],
-        spectator: []
-    });
+
+    const goHome = () => {
+        redirect("/");
+    };
+
+
+    function getLanguages() {
+        return [
+            { id: "lang-js", label: "JavaScript" },
+            { id: "lang-css", label: "Css" },
+            { id: "lang-html", label: "Html" },
+            { id: "lang-csharp", label: "C#" },
+            { id: "lang-php", label: "Php" },
+            { id: "lang-python", label: "Python" },
+        ];
+    }
 
     useEffect(() => {
         let isMounted = true; // Track if the component is mounted
@@ -274,6 +302,9 @@ export default function Page() {
     }, [connectionId, name]);
 
     return (
+
+
+
         <div className="min-h-screen flex flex-col items-center justify-center p-4">
 
             {/* Room ID */}
@@ -477,17 +508,19 @@ export default function Page() {
                                         <p className="font-medium mb-2">Langages :</p>
                                         <div className="grid grid-cols-3 gap-4">
                                             {getLanguages().map((lang) => (
-                                                <div key={lang.id} className="flex items-center space-x-3 p-1">
-                                                    <label htmlFor={lang.id} className="flex items-center cursor-pointer">
-                                                        <input
-                                                            type="checkbox"
-                                                            id={lang.id}
-                                                            checked={selectedLanguages.includes(lang.id)}
-                                                            onChange={() => handleLanguageToggle(lang.id)}
-                                                            className="w-5 h-5 cursor-pointer"
-                                                        />
-                                                        <span className="ml-2">{lang.label}</span>
+                                                <div
+                                                    key={lang.id}
+                                                    className="flex items-center space-x-3 p-1"
+                                                >
+                                                    <label htmlFor={lang.id} className="">
+                                                        {lang.label}
                                                     </label>
+                                                    <input
+                                                        type="checkbox"
+                                                        id={lang.id}
+                                                        className="w-5 h-5 cursor-pointer"
+                                                    />
+
                                                 </div>
                                             ))}
                                         </div>
