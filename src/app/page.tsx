@@ -1,13 +1,13 @@
 "use client";
 
 import Carousel from '../components/Carousel';
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Image from 'next/image';
-import { redirect } from 'next/navigation';
 import handleRoomCreation from "@/components/handle_room_creation";
+import { useRouter } from 'next/navigation';
 
 const App = () => {
-  const avatarList = [
+  const avatarList = useMemo(() => [
     "/assets/avatar/cat.png",
     "/assets/avatar/dog.png",
     "/assets/avatar/rabbit.png",
@@ -17,7 +17,7 @@ const App = () => {
     "/assets/avatar/frog.png",
     "/assets/avatar/panda.png",
     "/assets/avatar/pig.png",
-  ];
+  ], []);
 
   const defaultNames = [
     "Raymond",
@@ -36,11 +36,13 @@ const App = () => {
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [roomCode, setRoomCode] = useState("");
 
+  const router = useRouter();
+
   // Initialiser l'avatar uniquement côté client
   useEffect(() => {
     const randomAvatar = avatarList[Math.floor(Math.random() * avatarList.length)];
     setAvatar(randomAvatar);
-  }, []);
+  }, [avatarList]);
 
   const handleReloadAvatar = () => {
     const randomAvatar = avatarList[Math.floor(Math.random() * avatarList.length)];
@@ -50,24 +52,49 @@ const App = () => {
   const handleJoinGame = () => {
     setIsPopupOpen(true);
   };
+  
+    const handleRoomCodeSubmit = async () => {
+    if (!roomCode) {
+      alert("Veuillez entrer un code de salle.");
+      return;
+    }
+  
+    try {
+      const response = await fetch(`/api/joinGame?id=${roomCode}`);
+      if (!response.ok) {
+        throw new Error("La salle n'existe pas.");
+      }
+  
+      const data = await response.json();
+  
+      // Récupère le connectionId et le stocke dans roomCode
+      const { connectionId } = data.room;
+      setRoomCode(connectionId);
+  
+      router.push(`/room?id=${connectionId}&nickname=${nickname || "user"}`);
+    } catch (error) {
+      console.error("Erreur lors de la tentative de rejoindre la salle :", error);
+      alert("Impossible de rejoindre la salle. Vérifiez le code et réessayez.");
+    }
+  };
 
   const handlePopupClose = () => {
     setIsPopupOpen(false);
     setRoomCode("");
   };
 
-  const handleRoomCodeSubmit = () => {
-    setIsPopupOpen(false);
-    // Ajouter également l'avatar ici
-    redirect(`/room?id=${roomCode}&nickname=${encodeURIComponent(nickname)}&avatar=${encodeURIComponent(avatar)}`);
-  };
+
+  // const handleRoomCodeSubmit = () => {
+  //   setIsPopupOpen(false);
+  //   redirect(`/room?id=${roomCode}`);
+  // };
 
   const handleCreateRoom = async () => {
     // Si aucun pseudo n'est fourni, attribuer un nom aléatoire
     const finalNickname = nickname || defaultNames[Math.floor(Math.random() * defaultNames.length)];
-    const roomId = await handleRoomCreation();
-    // Ajouter l'avatar à l'URL de redirection
-    redirect(`/room?id=${roomId}&nickname=${encodeURIComponent(finalNickname)}&avatar=${encodeURIComponent(avatar)}`);
+
+    const roomId = await handleRoomCreation(finalNickname);
+    router.push(`/room?id=${roomId}&nickname=${finalNickname}`); // Use router.push for navigation
   };
 
   return (
