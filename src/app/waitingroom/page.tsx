@@ -33,12 +33,17 @@ export default function Page() {
     "info"
   );
 
-  const [teamMembers, setTeamMembers] = useState({
-    red: [],
-    blue: [],
-    spectator: [],
-    admin: [],
-  });
+  const [teamRed, setTeamRed] = useState<string[]>([]);
+  const [teamBlue, setTeamBlue] = useState<string[]>([]);
+  const [teamSpectator, setTeamSpectator] = useState<string[]>([]);
+  const [teamAdmin, setTeamAdmin] = useState<string[]>([]);
+
+  // const [teamMembers, setTeamMembers] = useState({
+  //   red: [],
+  //   blue: [],
+  //   spectator: [],
+  //   admin: [],
+  // });
   const [error, setError] = useState<string | null>(null);
 
   const goHome = () => {
@@ -65,115 +70,196 @@ export default function Page() {
       console.error("No sessionID found in localStorage");
       return;
     }
-    socket.emit("join_team", { team, sessionID, connectionId });
+    socket.emit("join_room", connectionId, name, localStorage.getItem("sessionID"), team);
+
+    console.log(teamSpectator);
+    // socket.emit("join_team", { team, sessionID, connectionId });
   };
 
-useEffect(() => {
-        let isMounted = true; // Track if the component is mounted
+  useEffect(() => {
+    let isMounted = true; // Track if the component is mounted
 
-        const initializeSocket = () => {
-            if (!socket.connected) {
-                socket.connect(); // Explicitly connect the socket if not already connected
-            }
+    const initializeSocket = () => {
+      if (!socket.connected) {
+        socket.connect(); // Explicitly connect the socket if not already connected
+      }
 
-            function onConnect() {
-                console.log("Connected to socket:", socket.id);
+      function onConnect() {
+        console.log("Connected to socket:", socket.id);
 
-                const storedUUID = localStorage.getItem("sessionID");
-                const storedTimestamp = localStorage.getItem("sessionTimestamp");
-                const currentTime = Date.now();
+        const storedUUID = localStorage.getItem("sessionID");
+        const storedTimestamp = localStorage.getItem("sessionTimestamp");
+        const currentTime = Date.now();
 
-                if (storedUUID && storedTimestamp && currentTime - Number(storedTimestamp) < UUID_EXPIRATION_TIME) {
-                    console.log("Reusing existing UUID:", storedUUID);
-                    localStorage.setItem("sessionTimestamp", currentTime.toString()); // Reset the timer
-                    setName(localStorage.getItem("name") || ""); // Retrieve the nickname from localStorage
-                } else {
-                    console.log("Requesting new UUID from server");
-                    console.log("Connection ID:", connectionId);
-                    console.log("Nickname:", name);
-                    socket.emit("request_uuid", connectionId); // Request a new UUID from the server
+        if (storedUUID && storedTimestamp && currentTime - Number(storedTimestamp) < UUID_EXPIRATION_TIME) {
+          console.log("Reusing existing UUID:", storedUUID);
+          localStorage.setItem("sessionTimestamp", currentTime.toString()); // Reset the timer
+          setName(localStorage.getItem("name") || ""); // Retrieve the nickname from localStorage
+        } else {
+          console.log("Requesting new UUID from server");
+          console.log("Connection ID:", connectionId);
+          console.log("Nickname:", name);
+          socket.emit("request_uuid", connectionId); // Request a new UUID from the server
+        }
+      }
+
+      function onDisconnect() {
+        console.log("Disconnected from socket, reason:", socket.disconnected);
+      }
+
+      if (socket) {
+        // Clean up previous listeners to avoid duplicates
+        socket.off("connect");
+        socket.off("disconnect");
+        socket.off("assign_uuid");
+        socket.off("user_joined");
+        socket.off("team_update_full");
+        socket.off("team_full");
+        socket.off("room_joined");
+
+        socket.on("connect", onConnect);
+        socket.on("disconnect", onDisconnect);
+
+        socket.on("assign_uuid", (sessionID) => {
+          console.log("Received UUID from server:", sessionID);
+          const currentTime = Date.now();
+          localStorage.setItem("sessionID", sessionID); // Store UUID in localStorage
+          localStorage.setItem("sessionTimestamp", currentTime.toString()); // Store timestamp
+          localStorage.setItem("name", name);
+        });
+
+        socket.on("user_joined", (users) => {
+          console.log("User joined:", users);
+          setUsersList((prevUsers) => Array.isArray(users) ? [...prevUsers, ...users] : prevUsers);
+        });
+
+
+        socket.on("team_full", (message) => {
+          setError(message);
+          setTimeout(() => setError(null), 3000);
+        });
+
+        socket.emit("join_room", connectionId, name, localStorage.getItem("sessionID"), "spectator");
+
+        socket.on("room_joined", (playersInRoom) => {
+          console.log("Room joined successfully:", playersInRoom);
+          setUsersList(Array.isArray(playersInRoom) ? playersInRoom : []); // Ensure usersList is always an array
+
+          interface Player {
+            name: string;
+            team: 'spectator' | 'red' | 'blue' | 'admin';
+          }
+
+          playersInRoom.forEach((user: Player) => {
+            console.log("User in room:", user);
+
+            if (user.team === "spectator") {
+              setTeamSpectator((prevSpectators) => {
+                if (!prevSpectators.includes(user.name)) {
+                  setTeamRed((prevRed) =>
+                    prevRed.filter((member) => member !== user.name)
+                  );
+                  setTeamBlue((prevBlue) =>
+                    prevBlue.filter((member) => member !== user.name)
+                  );
+                  setTeamAdmin((prevAdmin) =>
+                    prevAdmin.filter((member) => member !== user.name)
+                  );
+                  return [...prevSpectators, user.name];
                 }
+                return prevSpectators;
+              });
             }
 
-            function onDisconnect() {
-                console.log("Disconnected from socket, reason:", socket.disconnected);
-            }
-
-            if (socket) {
-                // Clean up previous listeners to avoid duplicates
-                socket.off("connect");
-                socket.off("disconnect");
-                socket.off("assign_uuid");
-                socket.off("user_joined");
-                socket.off("team_update_full");
-                socket.off("team_full");
-                socket.off("room_joined");
-
-                socket.on("connect", onConnect);
-                socket.on("disconnect", onDisconnect);
-
-                socket.on("assign_uuid", (sessionID) => {
-                    console.log("Received UUID from server:", sessionID);
-                    const currentTime = Date.now();
-                    localStorage.setItem("sessionID", sessionID); // Store UUID in localStorage
-                    localStorage.setItem("sessionTimestamp", currentTime.toString()); // Store timestamp
-                    localStorage.setItem("name", name);
-                });
-
-                socket.on("user_joined", (users) => {
-                    console.log("User joined:", users);
-                    setUsersList((prevUsers) => Array.isArray(users) ? [...prevUsers, ...users] : prevUsers);
-                });
-
-                socket.on("team_update_full", (updatedTeams) => {
-                    setTeamMembers(updatedTeams);
-                });
-
-                socket.on("team_full", (message) => {
-                    setError(message);
-                    setTimeout(() => setError(null), 3000);
-                });
-
-                socket.emit("join_room", connectionId, name, localStorage.getItem("sessionID"));
-
-                socket.on("room_joined", (playersInRoom) => {
-                    console.log("Room joined successfully:", playersInRoom);
-                    setUsersList(Array.isArray(playersInRoom) ? playersInRoom : []); // Ensure usersList is always an array
-                });
-            }
-        };
-
-        const fetchRoom = async () => {
-            try {
-                const response = await fetch(`/api/getRoomFromId?id=${connectionId}`);
-                if (!response.ok) {
-                    throw new Error("Failed to fetch room data");
+            if (user.team === "red") {
+              setTeamRed((prevRed) => {
+                if (!prevRed.includes(user.name)) {
+                  setTeamSpectator((prevRed) =>
+                    prevRed.filter((member) => member !== user.name)
+                  );
+                  setTeamBlue((prevBlue) =>
+                    prevBlue.filter((member) => member !== user.name)
+                  );
+                  setTeamAdmin((prevAdmin) =>
+                    prevAdmin.filter((member) => member !== user.name)
+                  );
+                  return [...prevRed, user.name];
                 }
-                const data = await response.json();
-                if (isMounted) setRoom(data); // Only update state if mounted
-            } catch (error) {
-                console.error("Error fetching room:", error);
+                return prevRed;
+              });
             }
-        };
 
-        fetchRoom();
-        initializeSocket();
-
-        return () => {
-            isMounted = false; // Mark as unmounted
-            console.log("Cleaning up socket connection...");
-            if (socket) {
-                socket.off("connect");
-                socket.off("disconnect");
-                socket.off("assign_uuid");
-                socket.off("user_joined");
-                socket.off("team_update_full");
-                socket.off("team_full");
-                socket.off("room_joined");
-                socket.disconnect(); // Explicitly disconnect the socket
+            if (user.team === "blue") {
+              setTeamBlue((prevBlue) => {
+                if (!prevBlue.includes(user.name)) {
+                  setTeamSpectator((prevRed) =>
+                    prevRed.filter((member) => member !== user.name)
+                  );
+                  setTeamRed((prevBlue) =>
+                    prevBlue.filter((member) => member !== user.name)
+                  );
+                  setTeamAdmin((prevAdmin) =>
+                    prevAdmin.filter((member) => member !== user.name)
+                  );
+                  return [...prevBlue, user.name];
+                }
+                return prevBlue;
+              });
             }
-        };
-    }, [connectionId, name]);
+
+            if (user.team === "admin") {
+              setTeamAdmin((prevAdmin) => {
+                if (!prevAdmin.includes(user.name)) {
+                  setTeamSpectator((prevRed) =>
+                    prevRed.filter((member) => member !== user.name)
+                  );
+                  setTeamRed((prevBlue) =>
+                    prevBlue.filter((member) => member !== user.name)
+                  );
+                  setTeamBlue((prevAdmin) =>
+                    prevAdmin.filter((member) => member !== user.name)
+                  );
+                  return [...prevAdmin, user.name];
+                }
+                return prevAdmin;
+              });
+            }
+          });
+        });
+      }
+    };
+
+    const fetchRoom = async () => {
+      try {
+        const response = await fetch(`/api/getRoomFromId?id=${connectionId}`);
+        if (!response.ok) {
+          throw new Error("Failed to fetch room data");
+        }
+        const data = await response.json();
+        if (isMounted) setRoom(data); // Only update state if mounted
+      } catch (error) {
+        console.error("Error fetching room:", error);
+      }
+    };
+
+    fetchRoom();
+    initializeSocket();
+
+    return () => {
+      isMounted = false; // Mark as unmounted
+      console.log("Cleaning up socket connection...");
+      if (socket) {
+        socket.off("connect");
+        socket.off("disconnect");
+        socket.off("assign_uuid");
+        socket.off("user_joined");
+        socket.off("team_update_full");
+        socket.off("team_full");
+        socket.off("room_joined");
+        socket.disconnect(); // Explicitly disconnect the socket
+      }
+    };
+  }, [connectionId, name]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4">
@@ -251,7 +337,7 @@ useEffect(() => {
           <hr className="border-gray-200 mb-4" />
 
           {/* List of blue team members */}
-          {teamMembers.blue.map((user, index) => (
+          {teamBlue.map((user, index) => (
             <div key={index} className="flex items-center space-x-2 mb-2">
               <Image
                 src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
@@ -288,7 +374,7 @@ useEffect(() => {
 
           {/* List of spectators */}
           <div className="flex items-center space-x-2 mb-2">
-            {teamMembers.spectator.map((user, index) => (
+            {teamSpectator.map((user, index) => (
               <div key={index} className="flex items-center space-x-2 mb-2">
                 <Image
                   src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
@@ -325,7 +411,7 @@ useEffect(() => {
           <hr className="border-gray-200 mb-4" />
 
           {/* List of red team members */}
-          {teamMembers.red.map((user, index) => (
+          {teamRed.map((user, index) => (
             <div key={index} className="flex items-center space-x-2 mb-2">
               <Image
                 src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="

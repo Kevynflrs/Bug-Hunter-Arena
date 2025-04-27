@@ -154,12 +154,6 @@ export default function Page() {
         };
     }, [connectionId, name]);
 
-    const handleJoinTeam = (team: 'red' | 'blue' | 'spectator' | 'admin') => {
-        const sessionID = localStorage.getItem("sessionID");
-        if (!sessionID) return;
-        socket.emit("join_team", { team, sessionID });
-    };
-
     return (
 
 
@@ -223,15 +217,6 @@ export default function Page() {
                     <div className="mb-4">
                         <div className="flex items-center justify-between mb-2">
                             <p className="font-semibold">Équipe Bleu</p>
-                            <button
-                                onClick={() => handleJoinTeam('blue')}
-                                className="border border-gray-300 text-sm px-3 py-1 rounded flex items-center hover:bg-gray-50 hover:shadow-md transition duration-200 cursor-pointer"
-                            >
-                                <span
-                                    className="w-3 h-3 bg-blue-600 rounded-full inline-block mr-2"
-                                ></span>
-                                Rejoindre
-                            </button>
                         </div>
                         {teamMembers.blue.map((user, index) => (
                             <div key={index} className="flex items-center space-x-2 mb-2">
@@ -249,15 +234,6 @@ export default function Page() {
                     <div>
                         <div className="flex items-center justify-between mb-2">
                             <p className="font-semibold">Équipe Rouge</p>
-                            <button
-                                onClick={() => handleJoinTeam('red')}
-                                className="border border-gray-300 text-sm px-3 py-1 rounded flex items-center hover:bg-gray-50 hover:shadow-md transition duration-200 cursor-pointer"
-                            >
-                                <span
-                                    className="w-3 h-3 bg-red-600 rounded-full inline-block mr-2"
-                                ></span>
-                                Rejoindre
-                            </button>
                         </div>
                         {teamMembers.red.map((user, index) => (
                             <div key={index} className="flex items-center space-x-2 mb-2">
@@ -286,15 +262,6 @@ export default function Page() {
                                     />
                                 </span>
                             </div>
-                            <button
-                                onClick={() => handleJoinTeam('admin')}
-                                className="border border-gray-300 text-sm px-3 py-1 rounded flex items-center hover:bg-gray-50 hover:shadow-md transition duration-200 cursor-pointer"
-                            >
-                                <span
-                                    className="w-3 h-3 bg-yellow-500 rounded-full inline-block mr-2"
-                                ></span>
-                                Rejoindre
-                            </button>
                         </div>
                         {/* Gray line */}
                         <hr className="border-gray-200 mb-4" />
@@ -314,15 +281,6 @@ export default function Page() {
                                 <h2 className="text-xl font-semibold">Spectateurs</h2>
                                 <span role="img" aria-label="Spectator" className="text-2xl">🔍</span>
                             </div>
-                            <button
-                                onClick={() => handleJoinTeam('spectator')}
-                                className="border border-gray-300 text-sm px-3 py-1 rounded flex items-center hover:bg-gray-50 hover:shadow-md transition duration-200 cursor-pointer"
-                            >
-                                <span
-                                    className="w-3 h-3 bg-gray-600 rounded-full inline-block mr-2"
-                                ></span>
-                                Rejoindre
-                            </button>
                         </div>
                         {/* Gray line */}
                         <hr className="border-gray-200 mb-4" />
