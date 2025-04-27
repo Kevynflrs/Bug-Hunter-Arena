@@ -1,7 +1,9 @@
 "use client"; // If using the Next.js App Router
 import React, { useEffect, useState } from "react";
 import { redirect } from "next/navigation";
+
 import { useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation"; // Remplacez l'importation
 
 import { getSocket } from "@/socket";
 
@@ -30,6 +32,18 @@ export default function Page() {
     const goHome = () => {
         redirect("/");
     };
+    
+    
+  function getLanguages() {
+    return [
+      { id: "lang-js", label: "JavaScript" },
+      { id: "lang-css", label: "Css" },
+      { id: "lang-html", label: "Html" },
+      { id: "lang-csharp", label: "C#" },
+      { id: "lang-php", label: "Php" },
+      { id: "lang-python", label: "Python" },
+    ];
+  }
 
     useEffect(() => {
         const fetchRoom = async () => {
@@ -133,25 +147,61 @@ export default function Page() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-4">
-            {/* Main container with two columns */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-5xl">
-                {/* Left Column: Room Name + Teams */}
-                <div className="rounded-2xl border-2 border-gray-200 p-4">
-                    {/* Header row: Room Name + refresh icon */}
-                    <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-xl font-semibold">{room?.name != null ? room.name : "Loading..."}&#39;s room</h2>
-                        <button
-                            type="button"
-                            className="text-gray-500 hover:text-gray-700"
-                            title="Refresh"
-                            onClick={goHome}
-                        >
-                            ↻
-                        </button>
-                    </div>
 
-                    {/* Join team buttons and error display */}
+
+
+    <div className="min-h-screen flex flex-col items-center justify-center p-4">
+        {/* Room ID */}
+        <div className="rounded-2xl border-2 border-gray-200 p-4 mb-4 max-w-5xl flex items-center justify-between">
+          <p className="text-lg font-semibold">
+            Room ID: {connectionId || "Loading..."}
+          </p>
+          <button
+            type="button"
+            className="ml-2"
+            onClick={() => {
+              if (connectionId) {
+            navigator.clipboard.writeText(connectionId);
+            alert("Room ID copied to clipboard!");
+              }
+            }}
+          >
+            <img
+              src="/assets/img/copy.png"
+              alt="Copy"
+              className="w-6 h-6 cursor-pointer"
+            />
+          </button>
+        </div>
+
+      {/* Main container with two columns */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-5xl">
+        {/* Left Column: Room Name + Teams */}
+        <div className="rounded-2xl border-2 border-gray-200 p-4">
+          {/* Header row: Room Name + refresh icon */}
+          <div className="flex flex-col mb-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold">
+                {nickname !== "" ? nickname : "Loading..."}&#39;s room
+              </h2>
+              <button
+                type="button"
+                className="text-gray-500 hover:text-gray-700"
+                title="Refresh"
+                onClick={goHome}
+              >
+                <img
+                  src="/assets/img/return.png"
+                  alt="Return"
+                  className="w-7 h-7"
+                />
+              </button>
+            </div>
+            {/* Gray line */}
+            <hr className="border-gray-200 mt-2" />
+          </div>
+
+                              {/* Join team buttons and error display */}
                     {error && <div className="text-red-500 font-semibold mb-4">{error}</div>}
 
                     {/* Équipe Bleu */}
@@ -174,7 +224,7 @@ export default function Page() {
                       ))}
                     </div>
 
-                    {/* Équipe Rouge */}
+          {/* Équipe Rouge */}
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <p className="font-semibold">Équipe Rouge</p>
@@ -193,8 +243,8 @@ export default function Page() {
                         </div>
                       ))}
                     </div>
-
-                    {/* Équipe Spectateur */}
+          
+                              {/* Équipe Spectateur */}
                     {/* <div>
                       <div className="flex items-center justify-between mb-2">
                         <p className="font-semibold">Spectateurs</p>
@@ -210,7 +260,115 @@ export default function Page() {
                       ))}
                     </div> */}
 
+        {/* Right Column: Maîtres du Jeu + Paramètre de Jeu */}
+        <div className="flex flex-col space-y-4">
+          {/* Maîtres du Jeu (still using radio buttons) */}
+          <div className="rounded-2xl border-2 border-gray-200 p-4">
+            <div className="flex items-center mb-4 space-x-2">
+              <h2 className="text-xl font-semibold">Maîtres du Jeu</h2>
+              <span role="img" aria-label="Game Master" className="text-2xl">
+                <img
+                  src="/assets/img/mvp.png"
+                  alt="Return"
+                  className="w-7 h-7"
+                />
+              </span>
+            </div>
+            {/* Gray line */}
+            <hr className="border-gray-200 mb-4" />
+            <div className="flex items-center space-x-2 mb-2">
+              <img
+                src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
+                alt="profile"
+                className="w-6 h-6 rounded-full bg-gray-300 border"
+              />
+              <span>McSmart</span>
+            </div>
+            <div className="flex items-center space-x-2 mb-2">
+              <img
+                src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
+                alt="profile"
+                className="w-6 h-6 rounded-full bg-gray-300 border"
+              />
+              <span>métroD</span>
+            </div>
+            <div className="flex items-center space-x-2 mb-2">
+              <img
+                src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
+                alt="profile"
+                className="w-6 h-6 rounded-full bg-gray-300 border"
+              />
+              <span>Jean</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <img
+                src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
+                alt="profile"
+                className="w-6 h-6 rounded-full bg-gray-300 border"
+              />
+              <span>arghhh</span>
+            </div>
+          </div>
+
+          {/* Paramètre de Jeu */}
+          <div className="rounded-2xl border-2 border-gray-200 p-4">
+            <div className="flex items-center mb-4 space-x-2">
+              <h2 className="text-xl font-semibold">Paramètre de Jeu</h2>
+              <img
+                src="/assets/img/setting.png"
+                alt="Settings"
+                className="w-7 h-7"
+              />
+            </div>
+            {/* Gray line */}
+            <hr className="border-gray-200 mb-4" />
+
+            {/* Conteneur avec espacement uniforme */}
+            <div className="space-y-4">
+              {/* Durée des manches */}
+              <div className="flex items-center space-x-4">
+                <label htmlFor="duree" className="font-medium">
+                  Durée des manches (en Secondes)
+                </label>
+                <input
+                  id="duree"
+                  type="number"
+                  defaultValue={260}
+                  className="border border-gray-300 rounded-lg px-3 py-1 w-32"
+                />
+              </div>
+
+              {/* Difficulté */}
+              <div className="mb-4 flex items-center space-x-4">
+                <p className="font-medium">Difficulté</p>
+                <div className="flex items-center space-x-2">
+                  {["1", "2", "3"].map((level) => (
+                    <label
+                      key={level}
+                      className="flex items-center justify-center w-10 h-10 border border-gray-300 rounded-lg cursor-pointer text-md font-semibold"
+                    >
+                      <input
+                        type="radio"
+                        name="difficulty"
+                        className="hidden"
+                        onChange={(e) => {
+                          e.target.parentElement?.classList.add("bg-gray-300");
+                          document
+                            .querySelectorAll('input[name="difficulty"]')
+                            .forEach((input) => {
+                              if (input !== e.target) {
+                                input.parentElement?.classList.remove(
+                                  "bg-gray-300"
+                                );
+                              }
+                            });
+                        }}
+                      />
+                      {level}
+                    </label>
+                  ))}
                 </div>
+              </div>
 
                 {/* Right Column: Maîtres du Jeu + Paramètre de Jeu */}
                 <div className="flex flex-col space-y-4">
@@ -252,77 +410,96 @@ export default function Page() {
                         </div>
                       ))}
                         </div>
+              {/* Langages */}
+              <div>
+                <p className="font-medium mb-2">Langages :</p>
+                <div className="grid grid-cols-3 gap-4">
+                  {getLanguages().map((lang) => (
+                    <div
+                      key={lang.id}
+                      className="flex items-center space-x-3 p-1"
+                    >
+                      <label htmlFor={lang.id} className="">
+                        {lang.label}
+                      </label>
+                      <input
+                        type="checkbox"
+                        id={lang.id}
+                        className="w-5 h-5 cursor-pointer"
+                      />
+
                     </div>
-
-                    {/* Paramètre de Jeu */}
-                    <div className="rounded-2xl border-2 border-gray-200 p-4">
-                        <h2 className="text-xl font-semibold mb-4">Paramètre de Jeu</h2>
-
-                        {/* Durée des manches */}
-                        <div className="mb-4">
-                            <label htmlFor="duree" className="block font-medium mb-1">
-                                Durée des manches (en Secondes)
-                            </label>
-                            <input
-                                id="duree"
-                                type="number"
-                                defaultValue={260}
-                                className="border border-gray-300 rounded px-2 py-1 w-32"
-                            />
-                        </div>
-
-                        {/* Difficulté */}
-                        <div className="mb-4">
-                            <p className="font-medium mb-2">Difficulté</p>
-                            <div className="flex items-center space-x-4">
-                                <div className="flex items-center space-x-2">
-                                    <input type="radio" name="difficulte" id="diff-1" />
-                                    <label htmlFor="diff-1">1</label>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                    <input type="radio" name="difficulte" id="diff-2" />
-                                    <label htmlFor="diff-2">2</label>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                    <input type="radio" name="difficulte" id="diff-3" />
-                                    <label htmlFor="diff-3">3</label>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Langages */}
-                        <div>
-                            <p className="font-medium mb-2">Langages</p>
-                            <div className="flex flex-wrap gap-4">
-                                <div className="flex items-center space-x-2">
-                                    <input type="checkbox" id="lang-js" />
-                                    <label htmlFor="lang-js">JavaScript</label>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                    <input type="checkbox" id="lang-css" />
-                                    <label htmlFor="lang-css">Css</label>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                    <input type="checkbox" id="lang-html" />
-                                    <label htmlFor="lang-html">Html</label>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                    <input type="checkbox" id="lang-csharp" />
-                                    <label htmlFor="lang-csharp">C#</label>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                    <input type="checkbox" id="lang-php" />
-                                    <label htmlFor="lang-php">Php</label>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                    <input type="checkbox" id="lang-python" />
-                                    <label htmlFor="lang-python">Python</label>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                  ))}
                 </div>
+              </div>
+
+              {/* Buttons container */}
+              <div className="flex justify-between mt-4">
+                {/* Play button */}
+                <button
+                  type="button"
+                  className="text-green-500 hover:text-green-700 flex items-center"
+                >
+                  <span className="mr-2">Lancer la partie</span>
+                  <img
+                    src="/assets/img/play.png"
+                    alt="Lancer la partie"
+                    className="w-6 h-6"
+                  />
+                </button>
+
+                {/* Delete button */}
+                <button
+                  type="button"
+                  className="text-red-500 hover:text-red-700 flex items-center"
+                  onClick={async () => {
+                    if (
+                      confirm("Êtes-vous sûr de vouloir supprimer cette partie ?")
+                    ) {
+                      try {
+                        const response = await fetch(`/api/deleteRoom`, {
+                          method: "POST",
+                          headers: {
+                            "Content-Type": "application/json",
+                          },
+                          body: JSON.stringify({ id: connectionId }),
+                        });
+
+                        if (!response.ok) {
+                          const errorData = await response.json();
+                          console.error("Erreur API :", errorData);
+                          throw new Error(
+                            errorData.message ||
+                              "Échec de la suppression de la salle"
+                          );
+                        }
+
+                        alert("Partie supprimée avec succès !");
+                        router.push("/");
+                      } catch (error) {
+                        console.error(
+                          "Erreur lors de la suppression de la salle :",
+                          error
+                        );
+                        alert(
+                          "Une erreur s'est produite lors de la suppression de la partie."
+                        );
+                      }
+                    }
+                  }}
+                >
+                  <span className="mr-2">Supprimer la partie</span>
+                  <img
+                    src="/assets/img/trash.png"
+                    alt="Supprimer la partie"
+                    className="w-6 h-6"
+                  />
+                </button>
+              </div>
             </div>
+          </div>
         </div>
-    );
+      </div>
+    </div>
+  );
 }

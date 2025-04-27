@@ -1,14 +1,13 @@
 "use client";
 
 import Carousel from '../components/Carousel';
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Image from 'next/image';
-import { redirect } from 'next/navigation';
 import handleRoomCreation from "@/components/handle_room_creation";
 import { useRouter } from 'next/navigation';
 
 const App = () => {
-  const avatarList = [
+  const avatarList = useMemo(() => [
     "/assets/avatar/cat.png",
     "/assets/avatar/dog.png",
     "/assets/avatar/rabbit.png",
@@ -18,7 +17,7 @@ const App = () => {
     "/assets/avatar/frog.png",
     "/assets/avatar/panda.png",
     "/assets/avatar/pig.png",
-  ];
+  ], []);
 
   const defaultNames = [
     "Raymond",
@@ -43,7 +42,7 @@ const App = () => {
   useEffect(() => {
     const randomAvatar = avatarList[Math.floor(Math.random() * avatarList.length)];
     setAvatar(randomAvatar);
-  }, []);
+  }, [avatarList]);
 
   const handleReloadAvatar = () => {
     const randomAvatar = avatarList[Math.floor(Math.random() * avatarList.length)];
@@ -84,6 +83,7 @@ const App = () => {
     setRoomCode("");
   };
 
+
   // const handleRoomCodeSubmit = () => {
   //   setIsPopupOpen(false);
   //   redirect(`/room?id=${roomCode}`);
@@ -93,8 +93,8 @@ const App = () => {
     // Si aucun pseudo n'est fourni, attribuer un nom aléatoire
     const finalNickname = nickname || defaultNames[Math.floor(Math.random() * defaultNames.length)];
 
-    const roomId = await handleRoomCreation(finalNickname);
-    redirect(`/room?id=${roomId}&nickname=${finalNickname}`);
+    const roomId = await handleRoomCreation();
+    router.push(`/room?id=${roomId}&nickname=${finalNickname}`); // Use router.push for navigation
   };
 
   return (
