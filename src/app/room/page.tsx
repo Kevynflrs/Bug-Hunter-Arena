@@ -183,7 +183,7 @@ export default function Page() {
                     <div className="flex flex-col mb-4">
                         <div className="flex items-center justify-between">
                             <h2 className="text-xl font-semibold">
-                                {nickname !== "" ? nickname : "Loading..."}&#39;s room
+                                {room?.name != null ? room.name : "Loading..."}&#39;s room
                             </h2>
                             <button
                                 type="button"
