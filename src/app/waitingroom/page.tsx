@@ -38,12 +38,7 @@ export default function Page() {
   const [teamSpectator, setTeamSpectator] = useState<string[]>([]);
   const [teamAdmin, setTeamAdmin] = useState<string[]>([]);
 
-  // const [teamMembers, setTeamMembers] = useState({
-  //   red: [],
-  //   blue: [],
-  //   spectator: [],
-  //   admin: [],
-  // });
+
   const [error, setError] = useState<string | null>(null);
 
   const goHome = () => {
@@ -131,6 +126,10 @@ export default function Page() {
         socket.on("user_joined", (users) => {
           console.log("User joined:", users);
           setUsersList((prevUsers) => Array.isArray(users) ? [...prevUsers, ...users] : prevUsers);
+          setTeamRed((prevRed) => Array.isArray(users) ? [...prevRed, ...users] : prevRed);
+          setTeamBlue((prevBlue) => Array.isArray(users) ? [...prevBlue, ...users] : prevBlue);
+          setTeamSpectator((prevSpectators) => Array.isArray(users) ? [...prevSpectators, ...users] : prevSpectators);
+          setTeamAdmin((prevAdmin) => Array.isArray(users) ? [...prevAdmin, ...users] : prevAdmin);
         });
 
 
