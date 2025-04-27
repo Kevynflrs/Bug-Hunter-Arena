@@ -1,4 +1,5 @@
-import mongoose, { Schema, Document } from "mongoose";
+import pkg from 'mongoose';
+const { Schema, model, models } = pkg;
 
 interface IQuestion extends Document {
   theme: string;
@@ -16,6 +17,6 @@ const QuestionSchema = new Schema<IQuestion>({
   explication: { type: String, required: true },
 });
 
-const QuestionModel = mongoose.model<IQuestion>("Question", QuestionSchema);
+const Question = models.Question || model<IQuestion>('Question', QuestionSchema);
 
-export default QuestionModel;
+export default Question;
