@@ -3,7 +3,6 @@
 import Carousel from '../components/Carousel';
 import { useState, useEffect, useMemo } from "react";
 import Image from 'next/image';
-import { useRouter } from 'next/navigation'; // Import useRouter
 import handleRoomCreation from "@/components/handle_room_creation";
 import { useRouter } from 'next/navigation';
 
@@ -84,10 +83,11 @@ const App = () => {
     setRoomCode("");
   };
 
-  const handleRoomCodeSubmit = () => {
-    setIsPopupOpen(false);
-    router.push(`/room?id=${roomCode}`); // Use router.push for navigation
-  };
+
+  // const handleRoomCodeSubmit = () => {
+  //   setIsPopupOpen(false);
+  //   redirect(`/room?id=${roomCode}`);
+  // };
 
   const handleCreateRoom = async () => {
     // Si aucun pseudo n'est fourni, attribuer un nom aléatoire
