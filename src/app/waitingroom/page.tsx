@@ -48,11 +48,11 @@ export default function Page() {
     if (connectionId) {
       navigator.clipboard.writeText(connectionId);
       setToastMessage("Room ID copied to clipboard!");
-      setToastType("success"); // Définir le type comme succès
+      setToastType("success");
       setShowToast(true);
     } else {
       setToastMessage("Failed to copy Room ID!");
-      setToastType("error"); // Définir le type comme erreur
+      setToastType("error");
       setShowToast(true);
     }
 };
