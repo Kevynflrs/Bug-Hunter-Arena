@@ -338,20 +338,19 @@ export default function Page() {
         </div>
 
         {/* Go Back Button */}
-        <div className="rounded-2xl border-2 border-gray-200 p-4 mb-4 max-w-5xl flex items-center justify-between">
-          <p className="text-lg font-semibold">retourner à l&apos;accueil</p>
+        <div className="rounded-2xl border-2 border-gray-200 p-4 mb-4 max-w-5xl flex items-center justify-between" onClick={goHome}>
+          <p className="text-lg font-semibold cursor-pointer">retourner à l&apos;accueil</p>
           <button
             type="button"
             className="ml-2 text-gray-500 hover:text-gray-700"
             title="go back to home"
-            onClick={goHome}
           >
             <Image
               src="/assets/img/return.png"
               alt="Return"
               width={64}
               height={64}
-              className="w-7 h-7 cursor-pointer"
+              className="w-7 h-7 cursor-pointer" 
             />
           </button>
         </div>
