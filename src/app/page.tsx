@@ -71,7 +71,7 @@ const App = () => {
       const { connectionId } = data.room;
       setRoomCode(connectionId);
   
-      router.push(`/room?id=${connectionId}&nickname=${nickname || "user"}`);
+      router.push(`/waitingroom?id=${connectionId}&nickname=${nickname || "user"}`);
     } catch (error) {
       console.error("Erreur lors de la tentative de rejoindre la salle :", error);
       alert("Impossible de rejoindre la salle. Vérifiez le code et réessayez.");
