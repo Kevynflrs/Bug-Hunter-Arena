@@ -2,7 +2,9 @@
 
 import { useState, useEffect, forwardRef } from "react";
 import Reponses from './Reponses';
-import { redirect } from 'next/navigation';
+import { getSocket } from "@/socket";
+
+const socket = getSocket();
 
 interface QuestionProps {
   onQuestionChange?: (question: QuestionData) => void;
@@ -16,6 +18,7 @@ const Question = forwardRef(({ onQuestionChange, team = 'blue', duration = 260, 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState(duration);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
 
   const teamThemes = {
     red: {
@@ -38,16 +41,31 @@ const Question = forwardRef(({ onQuestionChange, team = 'blue', duration = 260, 
     }
   };
 
-  // Define colors here, before using it
   const colors = teamThemes[team];
+
+  const handleAnswerSubmit = (isCorrect: boolean) => {
+    setHasSubmitted(true);
+    const params = new URLSearchParams(window.location.search);
+    const connectionId = params.get('id');
+
+    if (isCorrect) {
+      // Émettre l'événement de réponse correcte avec l'équipe
+      socket.emit('correct_answer', {
+        roomId: connectionId,
+        team: team
+      });
+    }
+  };
 
   const fetchNewQuestion = async () => {
     try {
       setIsLoading(true);
       setError(null);
+      setHasSubmitted(false);
       
       const params = new URLSearchParams(window.location.search);
       const languages = params.get('languages') || '';
+      const connectionId = params.get('id');
       const queryParams = new URLSearchParams({
         languages,
         ...(difficulty && { difficulty })
@@ -62,8 +80,16 @@ const Question = forwardRef(({ onQuestionChange, team = 'blue', duration = 260, 
 
       setQuestion(data.question);
       setTimeLeft(duration);
-      if (onQuestionChange) {
-        onQuestionChange(data.question);
+
+      // Si c'est le maître du jeu, émettre l'événement pour tous les joueurs
+      if (team === 'creator') {
+        socket.emit('change_question', {
+          roomId: connectionId,
+          settings: {
+            question: data.question,
+            timeLeft: duration
+          }
+        });
       }
     } catch (error) {
       console.error('Error:', error);
@@ -73,8 +99,23 @@ const Question = forwardRef(({ onQuestionChange, team = 'blue', duration = 260, 
     }
   };
 
+  // Écouter les changements de question
   useEffect(() => {
-    fetchNewQuestion();
+    socket.on('question_changed', (data) => {
+      setQuestion(data.question);
+      setTimeLeft(data.timeLeft);
+      setHasSubmitted(false);
+    });
+
+    return () => {
+      socket.off('question_changed');
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!question) {
+      fetchNewQuestion();
+    }
   }, []);
 
   useEffect(() => {
@@ -83,7 +124,9 @@ const Question = forwardRef(({ onQuestionChange, team = 'blue', duration = 260, 
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
-          fetchNewQuestion(); // Passe automatiquement à la question suivante
+          if (team === 'creator') {
+            fetchNewQuestion();
+          }
           return duration;
         }
         return prev - 1;
@@ -91,25 +134,8 @@ const Question = forwardRef(({ onQuestionChange, team = 'blue', duration = 260, 
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [question, duration]);
+  }, [question, duration, team]);
 
-  const handleAnswerSubmit = (isCorrect: boolean) => {
-    if (isCorrect) {
-      const newScore = score + 1;
-      setScore(newScore);
-      
-      if (newScore >= 5) {
-        const params = new URLSearchParams(window.location.search);
-        const roomId = params.get('id');
-        const nickname = params.get('nickname');
-        redirect(`/room?id=${roomId}&nickname=${nickname}`);
-        return;
-      }
-    }
-    fetchNewQuestion();
-  };
-
-  // Utiliser colors en s'assurant qu'il existe
   if (isLoading) return <div className={colors.text}>Chargement...</div>;
   if (error) return <div className="text-red-500">{error}</div>;
   if (!question) return null;
@@ -122,7 +148,6 @@ const Question = forwardRef(({ onQuestionChange, team = 'blue', duration = 260, 
             <h2 className="text-lg font-bold text-gray-800">Thème : {question?.theme}</h2>
             <p className="text-sm text-gray-600">
               Niveau : {question?.niveau}
-              {/* Afficher le temps pour tous les utilisateurs */}
               <span className="ml-4">Temps restant : {timeLeft}s</span>
             </p>
           </div>
@@ -164,6 +189,7 @@ const Question = forwardRef(({ onQuestionChange, team = 'blue', duration = 260, 
           explication={question.explication}
           onAnswerSubmit={handleAnswerSubmit}
           teamColors={colors}
+          isDisabled={hasSubmitted}
         />
       )}
     </div>

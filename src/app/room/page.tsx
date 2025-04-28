@@ -53,6 +53,16 @@ export default function Page() {
             return;
         }
         
+        const gameSettings = {
+            languages: selectedLanguages.join(','),
+            duration: duree.toString(),
+            difficulty: difficulte?.toString(),
+        };
+
+        // Émettre l'événement start_game à tous les joueurs
+        socket.emit('start_game', connectionId, gameSettings);
+        
+        // Rediriger le maître du jeu vers la page de jeu
         const queryParams = new URLSearchParams({
             languages: selectedLanguages.join(','),
             id: connectionId || '',

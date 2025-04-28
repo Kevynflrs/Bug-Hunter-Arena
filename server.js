@@ -61,9 +61,13 @@ app.prepare().then(async () => {
         // });
       });
 
+      socket.on('new_question', ({ question, roomId }) => {
+        // Diffuser la nouvelle question à tous les joueurs de la room
+        io.to(roomId).emit('question_updated', question);
+      });
+
       // Handle room joining
-      socket.on('join_room', async (roomId, name, sessionID, team) => {
-        console.log(`User ${socket.id} joining room: ${roomId}`);
+      socket.on('join_room', (roomId, name, sessionID, team) => {
         socket.join(roomId);
 
         // Get all sockets in the room
@@ -151,6 +155,11 @@ app.prepare().then(async () => {
 
       socket.on('disconnect', (reason) => {
         console.log(`User disconnected: ${socket.id}, Reason: ${reason}`);
+      });
+
+      socket.on('start_game', (roomId, settings) => {
+        console.log('Game starting in room:', roomId, 'with settings:', settings);
+        io.to(roomId).emit('game_starting', settings);
       });
     });
 
