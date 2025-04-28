@@ -35,8 +35,6 @@ export default function Page() {
   const [teamSpectator, setTeamSpectator] = useState<string[]>([]);
   const [teamAdmin, setTeamAdmin] = useState<string[]>([]);
 
-  const [error, setError] = useState<string | null>(null);
-
   const goHome = () => {
     redirect("/");
   };
@@ -88,7 +86,8 @@ export default function Page() {
         if (
           storedUUID &&
           storedTimestamp &&
-          currentTime - Number(storedTimestamp) < UUID_EXPIRATION_TIME
+          currentTime - Number(storedTimestamp) < UUID_EXPIRATION_TIME &&
+          storedRoomId === connectionId
         ) {
           localStorage.setItem("sessionTimestamp", currentTime.toString());
           setName(localStorage.getItem("name") || "");

@@ -25,14 +25,7 @@ export default function Page() {
   const nickname = searchParams.get("nickname");
   const router = useRouter();
   const [name, setName] = useState<string>(nickname || ""); // Initialize with an empty string or a default value
-  const [usersList, setUsersList] = useState<string[]>([]); // State to store the list of users
 
-  const [teamMembers, setTeamMembers] = useState({
-    red: [],
-    blue: [],
-    spectator: [],
-    admin: [],
-  });
   const [error, setError] = useState<string | null>(null);
 
   const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
@@ -43,6 +36,11 @@ export default function Page() {
   const [toastType, setToastType] = useState<"success" | "error" | "info">(
     "info"
   );
+
+  const [teamRed, setTeamRed] = useState<string[]>([]);
+  const [teamBlue, setTeamBlue] = useState<string[]>([]);
+  const [teamSpectator, setTeamSpectator] = useState<string[]>([]);
+  const [teamAdmin, setTeamAdmin] = useState<string[]>([]);
 
   const showToastMessage = (
     message: string,
@@ -145,35 +143,170 @@ export default function Page() {
           localStorage.setItem("sessionID", sessionID); // Store UUID in localStorage
           localStorage.setItem("sessionTimestamp", currentTime.toString()); // Store timestamp
           localStorage.setItem("name", name);
+          localStorage.setItem("team", "admin");
         });
 
-        socket.on("user_joined", (users) => {
-          console.log("User joined:", users);
-          setUsersList((prevUsers) =>
-            Array.isArray(users) ? [...prevUsers, ...users] : prevUsers
-          );
-        });
+        socket.on("user_joined", (user) => {
+          if (user.team === "spectator") {
+            setTeamSpectator((prevSpectators) => {
+              if (!prevSpectators.includes(user.name)) {
+                setTeamRed((prevRed) =>
+                  prevRed.filter((member) => member !== user.name)
+                );
+                setTeamBlue((prevBlue) =>
+                  prevBlue.filter((member) => member !== user.name)
+                );
+                setTeamAdmin((prevAdmin) =>
+                  prevAdmin.filter((member) => member !== user.name)
+                );
+                return [...prevSpectators, user.name];
+              }
+              return prevSpectators;
+            });
+          }
 
-        socket.on("team_update_full", (updatedTeams) => {
-          console.log("Team update received:", updatedTeams);
-          setTeamMembers(updatedTeams);
-        });
+          if (user.team === "red") {
+            setTeamRed((prevRed) => {
+              if (!prevRed.includes(user.name)) {
+                setTeamSpectator((prevRed) =>
+                  prevRed.filter((member) => member !== user.name)
+                );
+                setTeamBlue((prevBlue) =>
+                  prevBlue.filter((member) => member !== user.name)
+                );
+                setTeamAdmin((prevAdmin) =>
+                  prevAdmin.filter((member) => member !== user.name)
+                );
+                return [...prevRed, user.name];
+              }
+              return prevRed;
+            });
+          }
+          if (user.team === "blue") {
+            setTeamBlue((prevBlue) => {
+              if (!prevBlue.includes(user.name)) {
+                setTeamSpectator((prevRed) =>
+                  prevRed.filter((member) => member !== user.name)
+                );
+                setTeamRed((prevBlue) =>
+                  prevBlue.filter((member) => member !== user.name)
+                );
+                setTeamAdmin((prevAdmin) =>
+                  prevAdmin.filter((member) => member !== user.name)
+                );
 
-        socket.on("team_full", (message) => {
-          setError(message);
-          setTimeout(() => setError(null), 3000);
+                return [...prevBlue, user.name];
+              }
+              return prevBlue;
+            });
+          }
+          if (user.team === "admin") {
+            setTeamAdmin((prevAdmin) => {
+              if (!prevAdmin.includes(user.name)) {
+                setTeamSpectator((prevRed) =>
+                  prevRed.filter((member) => member !== user.name)
+                );
+                setTeamRed((prevBlue) =>
+                  prevBlue.filter((member) => member !== user.name)
+                );
+                setTeamBlue((prevAdmin) =>
+                  prevAdmin.filter((member) => member !== user.name)
+                );
+
+                return [...prevAdmin, user.name];
+              }
+              return prevAdmin;
+            });
+          }
         });
 
         socket.emit(
           "join_room",
           connectionId,
           name,
-          localStorage.getItem("sessionID")
+          localStorage.getItem("sessionID"),
+          localStorage.getItem("team")
         );
 
         socket.on("room_joined", (playersInRoom) => {
-          console.log("Room joined successfully:", playersInRoom);
-          setUsersList(Array.isArray(playersInRoom) ? playersInRoom : []); // Ensure usersList is always an array
+          interface Player {
+            name: string;
+            team: "spectator" | "red" | "blue" | "admin";
+          }
+
+          playersInRoom.forEach((user: Player) => {
+            if (user.team === "spectator") {
+              setTeamSpectator((prevSpectators) => {
+                if (!prevSpectators.includes(user.name)) {
+                  setTeamRed((prevRed) =>
+                    prevRed.filter((member) => member !== user.name)
+                  );
+                  setTeamBlue((prevBlue) =>
+                    prevBlue.filter((member) => member !== user.name)
+                  );
+                  setTeamAdmin((prevAdmin) =>
+                    prevAdmin.filter((member) => member !== user.name)
+                  );
+                  return [...prevSpectators, user.name];
+                }
+                return prevSpectators;
+              });
+            }
+
+            if (user.team === "red") {
+              setTeamRed((prevRed) => {
+                if (!prevRed.includes(user.name)) {
+                  setTeamSpectator((prevRed) =>
+                    prevRed.filter((member) => member !== user.name)
+                  );
+                  setTeamBlue((prevBlue) =>
+                    prevBlue.filter((member) => member !== user.name)
+                  );
+                  setTeamAdmin((prevAdmin) =>
+                    prevAdmin.filter((member) => member !== user.name)
+                  );
+                  return [...prevRed, user.name];
+                }
+                return prevRed;
+              });
+            }
+
+            if (user.team === "blue") {
+              setTeamBlue((prevBlue) => {
+                if (!prevBlue.includes(user.name)) {
+                  setTeamSpectator((prevRed) =>
+                    prevRed.filter((member) => member !== user.name)
+                  );
+                  setTeamRed((prevBlue) =>
+                    prevBlue.filter((member) => member !== user.name)
+                  );
+                  setTeamAdmin((prevAdmin) =>
+                    prevAdmin.filter((member) => member !== user.name)
+                  );
+                  return [...prevBlue, user.name];
+                }
+                return prevBlue;
+              });
+            }
+
+            if (user.team === "admin") {
+              setTeamAdmin((prevAdmin) => {
+                if (!prevAdmin.includes(user.name)) {
+                  setTeamSpectator((prevRed) =>
+                    prevRed.filter((member) => member !== user.name)
+                  );
+                  setTeamRed((prevBlue) =>
+                    prevBlue.filter((member) => member !== user.name)
+                  );
+                  setTeamBlue((prevAdmin) =>
+                    prevAdmin.filter((member) => member !== user.name)
+                  );
+                  return [...prevAdmin, user.name];
+                }
+                return prevAdmin;
+              });
+            }
+          });
         });
       }
     };
@@ -292,7 +425,7 @@ export default function Page() {
                 className="w-7 h-7"
               />
             </div>
-            {teamMembers.blue.map((user, index) => (
+            {teamBlue.map((user, index) => (
               <div key={index} className="flex items-center space-x-2 mb-2">
                 <Image
                   src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
@@ -318,7 +451,7 @@ export default function Page() {
                 className="w-7 h-7"
               />
             </div>
-            {teamMembers.red.map((user, index) => (
+            {teamRed.map((user, index) => (
               <div key={index} className="flex items-center space-x-2 mb-2">
                 <Image
                   src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
@@ -343,7 +476,7 @@ export default function Page() {
                 className="w-7 h-7"
               />
             </div>
-            {teamMembers.spectator.map((user, index) => (
+            {teamSpectator.map((user, index) => (
               <div key={index} className="flex items-center space-x-2 mb-2">
                 <Image
                   src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
@@ -378,7 +511,7 @@ export default function Page() {
             {/* Gray line */}
             <hr className="border-gray-200 mb-4" />
             <div className="flex items-center space-x-2 mb-2">
-              {teamMembers.admin.map((user, index) => (
+              {teamAdmin.map((user, index) => (
                 <div key={index} className="flex items-center space-x-2 mb-2">
                   <Image
                     src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
@@ -523,7 +656,7 @@ export default function Page() {
                             console.error("Erreur API :", errorData);
                             throw new Error(
                               errorData.message ||
-                                "Échec de la suppression de la salle"
+                              "Échec de la suppression de la salle"
                             );
                           }
 
