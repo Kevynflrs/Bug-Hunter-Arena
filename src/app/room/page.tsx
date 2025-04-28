@@ -31,20 +31,45 @@ export default function Page() {
     const [teamSpectator, setTeamSpectator] = useState<string[]>([]);
     const [teamAdmin, setTeamAdmin] = useState<string[]>([]);
     const [error, setError] = useState<string | null>(null);
+    const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
+    const [difficulte, setDifficulte] = useState<number>(1);
+    const [duree, setDuree] = useState<number>(260);
 
     const goHome = () => {
         redirect("/");
     };
 
+    const handleLanguageToggle = (lang: string) => {
+        setSelectedLanguages(prev => 
+            prev.includes(lang) 
+                ? prev.filter(l => l !== lang)
+                : [...prev, lang]
+        );
+    };
+
+    const handleStartGame = () => {
+        if (selectedLanguages.length === 0) {
+            setError("Veuillez sélectionner au moins un langage");
+            return;
+        }
+        
+        const queryParams = new URLSearchParams({
+            languages: selectedLanguages.join(','),
+            id: connectionId || '',
+            difficulty: difficulte.toString(),
+            duration: duree.toString()
+        }).toString();
+        
+        router.push(`/in-game?${queryParams}`);
+    };
 
     function getLanguages() {
         return [
-            { id: "lang-js", label: "JavaScript" },
-            { id: "lang-css", label: "Css" },
-            { id: "lang-html", label: "Html" },
-            { id: "lang-csharp", label: "C#" },
-            { id: "lang-php", label: "Php" },
-            { id: "lang-python", label: "Python" },
+            { id: "js", label: "JavaScript" },
+            { id: "Cpp", label: "C++" },
+            { id: "html", label: "Html" },
+            { id: "Csharp", label: "C#" },
+            { id: "PHP", label: "PHP" },
         ];
     }
 
@@ -508,19 +533,19 @@ export default function Page() {
                                         <p className="font-medium mb-2">Langages :</p>
                                         <div className="grid grid-cols-3 gap-4">
                                             {getLanguages().map((lang) => (
-                                                <div
-                                                    key={lang.id}
-                                                    className="flex items-center space-x-3 p-1"
-                                                >
-                                                    <label htmlFor={lang.id} className="">
-                                                        {lang.label}
+                                                
+                                                <div key={lang.id} className="flex items-center space-x-3 p-1">
+                                                     <label htmlFor={lang.id} className="flex items-center cursor-pointer">
+                                                         <input
+                                                             type="checkbox"
+                                                             id={lang.id}
+                                                             checked={selectedLanguages.includes(lang.id)}
+                                                             onChange={() => handleLanguageToggle(lang.id)}
+                                                             className="w-5 h-5 cursor-pointer"
+                                                         />
+                                                         <span className="ml-2">{lang.label}</span>
                                                     </label>
-                                                    <input
-                                                        type="checkbox"
-                                                        id={lang.id}
-                                                        className="w-5 h-5 cursor-pointer"
-                                                    />
-
+                                                
                                                 </div>
                                             ))}
                                         </div>
@@ -531,7 +556,8 @@ export default function Page() {
                                         {/* Play button */}
                                         <button
                                             type="button"
-                                            className="text-green-500 hover:text-green-700 flex items-center cursor-pointer"
+                                            className="text-green-500 hover:text-green-700 flex items-center"
+                                            onClick={handleStartGame}
                                         >
                                             <span className="mr-2">Lancer la partie</span>
                                             <img

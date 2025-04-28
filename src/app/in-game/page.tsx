@@ -1,46 +1,87 @@
 "use client";
 
-import { useState, useRef, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useRef } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Question from '@/components/Questions';
-import Reponses from '@/components/Reponses';
+import { getSocket } from "@/socket";
+
+const socket = getSocket();
 
 export default function InGamePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const questionRef = useRef(null);
   const [currentQuestion, setCurrentQuestion] = useState(null);
   const [userTeam, setUserTeam] = useState<'red' | 'blue' | 'creator'>('blue');
   
-  // Score d'équipe au lieu des scores individuels
   const [teamScores, setTeamScores] = useState({
     blue: 0,
     red: 0
   });
 
-  // Liste des joueurs par équipe
   const [teams, setTeams] = useState({
-    blue: [
-      { name: "PingPong", role: "JavaScript" },
-      { name: "CodeMaster", role: "PHP" },
-      { name: "BugBuster", role: "Cpp" }
-    ],
-    red: [
-      { name: "AlQuaïda", role: "Mobile" },
-      { name: "McGrégor", role: "Csharp" }
-    ],
-    creator: [
-      { name: "GameMaster", role: "Maître du jeu" }
-    ]
+    blue: [] as { name: string }[],
+    red: [] as { name: string }[],
+    creator: [] as { name: string }[]
   });
 
-  const handlePointsUpdate = (isCorrect: boolean) => {
-    if (isCorrect) {
-      setTeamScores(prev => ({
-        ...prev,
-        [userTeam === 'creator' ? 'blue' : userTeam]: prev[userTeam === 'creator' ? 'blue' : userTeam] + 1
-      }));
+  useEffect(() => {
+    if (socket) {
+      if (!socket.connected) {
+        socket.connect();
+      }
+
+      // Récupérer l'ID de la room depuis l'URL
+      const connectionId = searchParams.get('id');
+      const name = localStorage.getItem('name');
+      const sessionID = localStorage.getItem('sessionID');
+      const storedTeam = localStorage.getItem('team');
+
+      if (connectionId && name && sessionID && storedTeam) {
+        socket.emit('join_room', connectionId, name, sessionID, storedTeam);
+        // Mettre à jour userTeam en fonction de l'équipe stockée
+        setUserTeam(storedTeam === 'admin' ? 'creator' : storedTeam as 'red' | 'blue' | 'creator');
+      }
+
+      socket.on('room_joined', (playersInRoom) => {
+        const newTeams = {
+          blue: [] as { name: string }[],
+          red: [] as { name: string }[],
+          creator: [] as { name: string }[]
+        };
+
+        playersInRoom.forEach((player: { name: string; team: string }) => {
+          if (player.team === 'red' || player.team === 'blue' || player.team === 'admin') {
+            newTeams[player.team === 'admin' ? 'creator' : player.team].push({
+              name: player.name
+            });
+          }
+        });
+
+        setTeams(newTeams);
+      });
+
+      socket.on('user_joined', (user) => {
+        setTeams(prev => {
+          const team = user.team === 'admin' ? 'creator' : user.team;
+          if (team === 'red' || team === 'blue' || team === 'creator') {
+            return {
+              ...prev,
+              [team]: [...prev[team], { name: user.name, role: user.role || 'Non assigné' }]
+            };
+          }
+          return prev;
+        });
+      });
+
+      return () => {
+        if (socket) {
+          socket.off('room_joined');
+          socket.off('user_joined');
+        }
+      };
     }
-  };
+  }, [searchParams]);
 
   return (
     <div className="min-h-screen flex">
@@ -53,7 +94,6 @@ export default function InGamePage() {
         {teams.blue.map((player, index) => (
           <div key={index} className="mb-2 p-2 bg-white rounded-md shadow-sm">
             <div className="font-medium">{player.name}</div>
-            <div className="text-sm text-gray-600">{player.role}</div>
           </div>
         ))}
       </div>
@@ -63,18 +103,8 @@ export default function InGamePage() {
         <Question 
           ref={questionRef}
           onQuestionChange={setCurrentQuestion}
-          team={userTeam}
+          team={userTeam}  // Assurez-vous que userTeam est bien passé
         />
-
-        {currentQuestion && (
-          <Reponses
-            correction={currentQuestion.correction}
-            explication={currentQuestion.explication}
-            onAnswerSubmit={handlePointsUpdate}
-            teamColors={getTeamColors(userTeam)}
-            isGameMaster={userTeam === 'creator'}
-          />
-        )}
       </div>
 
       {/* Liste des joueurs équipe rouge */}
@@ -86,21 +116,9 @@ export default function InGamePage() {
         {teams.red.map((player, index) => (
           <div key={index} className="mb-2 p-2 bg-white rounded-md shadow-sm">
             <div className="font-medium">{player.name}</div>
-            <div className="text-sm text-gray-600">{player.role}</div>
           </div>
         ))}
       </div>
-
-      {/* Maître du jeu (si présent) */}
-      {userTeam === 'creator' && (
-        <div className="absolute top-4 right-4 bg-yellow-50 p-4 rounded-lg">
-          {teams.creator.map((player, index) => (
-            <div key={index} className="font-medium text-yellow-600">
-              {player.name} - {player.role}
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

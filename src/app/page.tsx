@@ -159,9 +159,9 @@ const App = () => {
               "/assets/img/success.png",
             ]}
             texts={[
-              "Chaque équipe désigne un expert en PHP, JavaScript (ReactJS), C++, C# et mobile.",
-              "Une technologie est tirée au sort, et le joueur correspondant doit corriger un bug pour marquer des points.",
-              "L’équipe avec le plus de point à la fin de la partie remporte (logique). \n A vous de jouer !",
+              "Chaque équipe s'affronte dans une série de défis de programmation.",
+              "Trouvez et corrigez les bugs pour marquer des points.",
+              "L'équipe avec le plus de points à la fin de la partie remporte la victoire!"
             ]}
             interval={8000}
           />

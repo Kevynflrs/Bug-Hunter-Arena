@@ -2,26 +2,18 @@
 
 import { useState, useEffect, forwardRef } from "react";
 import Reponses from './Reponses';
-import { redirect } from 'next/navigation';
-
-interface QuestionData {
-  id: string;
-  theme: string;
-  niveau: string;
-  question: string;
-  correction: string;
-  explication: string;
-}
 
 interface QuestionProps {
   onQuestionChange?: (question: QuestionData) => void;
-  team?: 'red' | 'blue' | 'creator';
+  team: 'red' | 'blue' | 'creator';  // Rendre team obligatoire
 }
 
 const Question = forwardRef(({ onQuestionChange, team = 'blue' }: QuestionProps, ref) => {
   const [question, setQuestion] = useState<QuestionData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  console.log('Current team:', team); // Pour déboguer
 
   const teamThemes = {
     red: {
@@ -97,7 +89,8 @@ const Question = forwardRef(({ onQuestionChange, team = 'blue' }: QuestionProps,
     fetchNewQuestion();
   }, []);
 
-  if (isLoading) return <div className={`${colors.text}`}>Chargement...</div>;
+  // Utiliser colors en s'assurant qu'il existe
+  if (isLoading) return <div className={colors?.text || 'text-gray-600'}>Chargement...</div>;
   if (error) return <div className="text-red-500">{error}</div>;
   if (!question) return null;
 
@@ -106,22 +99,49 @@ const Question = forwardRef(({ onQuestionChange, team = 'blue' }: QuestionProps,
       <div className={`p-6 bg-white rounded-lg shadow-md mb-6 border ${colors.border}`}>
         <div className="flex justify-between items-center mb-4">
           <div>
-            <h2 className="text-lg font-bold text-gray-800">Thème : {question.theme}</h2>
-            <p className="text-sm text-gray-600">Niveau : {question.niveau}</p>
+            <h2 className="text-lg font-bold text-gray-800">Thème : {question?.theme}</h2>
+            <p className="text-sm text-gray-600">Niveau : {question?.niveau}</p>
           </div>
+          {team === 'creator' && (
+            <button
+              onClick={() => fetchNewQuestion()}
+              className={`px-4 py-2 rounded text-white ${colors.button}`}
+            >
+              Question suivante
+            </button>
+          )}
         </div>
-        <pre className="bg-gray-100 p-4 rounded-md text-sm text-gray-800 font-mono whitespace-pre-wrap">
-          {question.question}
-        </pre>
+        {question && (
+          <>
+            <pre className="bg-gray-100 p-4 rounded-md text-sm text-gray-800 font-mono whitespace-pre-wrap">
+              {question.question}
+            </pre>
+            {team === 'creator' && (
+              <div className={`mt-4 p-4 rounded border ${colors.bg} ${colors.border}`}>
+                <div className="space-y-4">
+                  <div>
+                    <p className="font-bold mb-2">Correction :</p>
+                    <pre className="bg-white p-2 rounded">{question.correction}</pre>
+                  </div>
+                  <div>
+                    <p className="font-bold mb-2">Explication :</p>
+                    <pre className="bg-white p-2 rounded whitespace-pre-wrap">{question.explication}</pre>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
 
-      <Reponses
-        correction={question.correction}
-        explication={question.explication}
-        onAnswerSubmit={handleAnswerSubmit}
-        teamColors={colors}
-        isGameMaster={team === 'creator'}
-      />
+      {question && team !== 'creator' && (
+        <Reponses
+          correction={question.correction}
+          explication={question.explication}
+          onAnswerSubmit={handleAnswerSubmit}
+          teamColors={colors}
+        />
+      )}
     </div>
   );
 });
