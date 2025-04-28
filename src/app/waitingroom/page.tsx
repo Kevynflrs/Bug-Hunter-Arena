@@ -1,10 +1,9 @@
-"use client"; // If using the Next.js App Router
+"use client";
 import React, { useEffect, useState } from "react";
 import { redirect } from "next/navigation";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import Toast from "@/components/Toast";
-// import { useRouter } from "next/navigation";
 
 import { getSocket } from "@/socket";
 
@@ -24,8 +23,7 @@ export default function Page() {
   const searchParams = useSearchParams();
   const connectionId = searchParams.get("id");
   const nickname = searchParams.get("nickname");
-  // const router = useRouter();
-  const [name, setName] = useState<string>(nickname || ""); // Initialize with an empty string or a default value
+  const [name, setName] = useState<string>(nickname || "");
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [toastType, setToastType] = useState<"error" | "success" | "info">(
@@ -57,10 +55,11 @@ export default function Page() {
   };
 
   const handleJoinTeam = (team: "red" | "blue" | "spectator" | "admin") => {
-    console.log("Joining team:", team); // Add this log
     const sessionID = localStorage.getItem("sessionID");
     if (!sessionID) {
-      console.error("No sessionID found in localStorage");
+      setToastMessage("No sessionID found in localStorage");
+      setToastType("error");
+      setShowToast(true);
       return;
     }
     socket.emit(
@@ -70,9 +69,6 @@ export default function Page() {
       localStorage.getItem("sessionID"),
       team
     );
-
-    console.log(teamSpectator);
-    // socket.emit("join_team", { team, sessionID, connectionId });
   };
 
   useEffect(() => {
@@ -80,12 +76,10 @@ export default function Page() {
 
     const initializeSocket = () => {
       if (!socket.connected) {
-        socket.connect(); // Explicitly connect the socket if not already connected
+        socket.connect();
       }
 
       function onConnect() {
-        console.log("Connected to socket:", socket.id);
-
         const storedUUID = localStorage.getItem("sessionID");
         const storedTimestamp = localStorage.getItem("sessionTimestamp");
         const currentTime = Date.now();
@@ -95,19 +89,17 @@ export default function Page() {
           storedTimestamp &&
           currentTime - Number(storedTimestamp) < UUID_EXPIRATION_TIME
         ) {
-          console.log("Reusing existing UUID:", storedUUID);
-          localStorage.setItem("sessionTimestamp", currentTime.toString()); // Reset the timer
-          setName(localStorage.getItem("name") || ""); // Retrieve the nickname from localStorage
+          localStorage.setItem("sessionTimestamp", currentTime.toString());
+          setName(localStorage.getItem("name") || "");
         } else {
-          console.log("Requesting new UUID from server");
-          console.log("Connection ID:", connectionId);
-          console.log("Nickname:", name);
           socket.emit("request_uuid", connectionId); // Request a new UUID from the server
         }
       }
 
       function onDisconnect() {
-        console.log("Disconnected from socket, reason:", socket.disconnected);
+        setToastMessage("Disconnected from socket.");
+        setToastType("error");
+        setShowToast(true);
       }
 
       if (socket) {
@@ -122,7 +114,6 @@ export default function Page() {
         socket.on("disconnect", onDisconnect);
 
         socket.on("assign_uuid", (sessionID) => {
-          console.log("Received UUID from server:", sessionID);
           const currentTime = Date.now();
           localStorage.setItem("sessionID", sessionID); // Store UUID in localStorage
           localStorage.setItem("sessionTimestamp", currentTime.toString()); // Store timestamp
@@ -130,9 +121,6 @@ export default function Page() {
         });
 
         socket.on("user_joined", (user) => {
-          console.log("User joined:", user);
-          // setUsersList((prevUsers) => Array.isArray(user) ? [...prevUsers, ...user] : prevUsers);
-
           if (user.team === "spectator") {
             setTeamSpectator((prevSpectators) => {
               if (!prevSpectators.includes(user.name)) {
@@ -215,16 +203,12 @@ export default function Page() {
         );
 
         socket.on("room_joined", (playersInRoom) => {
-          console.log("Room joined successfully:", playersInRoom);
-
           interface Player {
             name: string;
             team: "spectator" | "red" | "blue" | "admin";
           }
 
           playersInRoom.forEach((user: Player) => {
-            console.log("User in room:", user);
-
             if (user.team === "spectator") {
               setTeamSpectator((prevSpectators) => {
                 if (!prevSpectators.includes(user.name)) {
@@ -303,14 +287,19 @@ export default function Page() {
 
     const fetchRoom = async () => {
       try {
-        const response = await fetch(`/api/getRoomFromId?id=${connectionId}`);
-        if (!response.ok) {
-          throw new Error("Failed to fetch room data");
-        }
-        const data = await response.json();
-        if (isMounted) setRoom(data); // Only update state if mounted
-      } catch (error) {
-        console.error("Error fetching room:", error);
+      const response = await fetch(`/api/getRoomFromId?id=${connectionId}`);
+      if (!response.ok) {
+        setToastMessage("Failed to fetch room data.");
+        setToastType("error");
+        setShowToast(true);
+        return;
+      }
+      const data = await response.json();
+      if (isMounted) setRoom(data); // Only update state if mounted
+      } catch {
+      setToastMessage("Error fetching room data.");
+      setToastType("error");
+      setShowToast(true);
       }
     };
 
@@ -319,7 +308,6 @@ export default function Page() {
 
     return () => {
       isMounted = false; // Mark as unmounted
-      console.log("Cleaning up socket connection...");
       if (socket) {
         socket.off("connect");
         socket.off("disconnect");
