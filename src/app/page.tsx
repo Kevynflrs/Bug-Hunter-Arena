@@ -1,17 +1,87 @@
 "use client";
 
-import { useState } from "react";
+import Carousel from '../components/Carousel';
+import { useState, useEffect, useMemo } from "react";
 import Image from 'next/image';
-import { redirect } from 'next/navigation'
-import handleRoomCreation from "@/components/handle_room_creation";  
+import handleRoomCreation from "@/components/handle_room_creation";
+import { useRouter } from 'next/navigation';
+import Toast from '@/components/Toast';
 
 const App = () => {
+  const avatarList = useMemo(() => [
+    "/assets/avatar/cat.png",
+    "/assets/avatar/dog.png",
+    "/assets/avatar/rabbit.png",
+    "/assets/avatar/cow.png",
+    "/assets/avatar/elephant.png",
+    "/assets/avatar/monkey.png",
+    "/assets/avatar/frog.png",
+    "/assets/avatar/panda.png",
+    "/assets/avatar/pig.png",
+  ], []);
+
+  const defaultNames = [
+    "Raymond",
+    "Gilbert",
+    "Alice",
+    "Yvonne",
+    "Denise",
+    "Edmond",
+    "Théophile",
+    "Achille",
+    "Isidore",
+  ];
+
+  const [avatar, setAvatar] = useState("");
   const [nickname, setNickname] = useState("");
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [roomCode, setRoomCode] = useState("");
+  const [toast, setToast] = useState<{ message: string; type?: "error" | "success" | "info"; visible: boolean }>({
+    message: "",
+    type: undefined,
+    visible: false,
+  });
+
+  const router = useRouter();
+
+  // Initialiser l'avatar uniquement côté client
+  useEffect(() => {
+    const randomAvatar = avatarList[Math.floor(Math.random() * avatarList.length)];
+    setAvatar(randomAvatar);
+  }, [avatarList]);
+
+  const handleReloadAvatar = () => {
+    const randomAvatar = avatarList[Math.floor(Math.random() * avatarList.length)];
+    setAvatar(randomAvatar);
+  };
 
   const handleJoinGame = () => {
     setIsPopupOpen(true);
+  };
+  
+  const handleRoomCodeSubmit = async () => {
+    if (!roomCode) {
+      setToast({ message: "Veuillez entrer un code de salle.", type: "error", visible: true });
+      return;
+    }
+  
+    try {
+      const response = await fetch(`/api/joinGame?id=${roomCode}`);
+      if (!response.ok) {
+        setToast({ message: "La salle n'existe pas.", type: "error", visible: true });
+        return;
+      }
+  
+      const data = await response.json();
+  
+      // Récupère le connectionId et le stocke dans roomCode
+      const { connectionId } = data.room;
+      setRoomCode(connectionId);
+  
+      router.push(`/waitingroom?id=${connectionId}&nickname=${nickname || "user"}`);
+    } catch {
+      setToast({ message: "Impossible de rejoindre la salle. Vérifiez le code et réessayez.", type: "error", visible: true });
+    }
   };
 
   const handlePopupClose = () => {
@@ -19,73 +89,99 @@ const App = () => {
     setRoomCode("");
   };
 
-  const handleRoomCodeSubmit = () => {
-    // Add logic to handle room code submission
-    setIsPopupOpen(false);
-    redirect(`/room?id=${roomCode}`);
-  };
-
-
   const handleCreateRoom = async () => {
+    // Si aucun pseudo n'est fourni, attribuer un nom aléatoire
+    const finalNickname = nickname || defaultNames[Math.floor(Math.random() * defaultNames.length)];
 
-    if (!nickname) {
-      alert("Veuillez entrer un surnom avant de créer une salle.");
-      return;
-    }
-    const roomId = await handleRoomCreation();
-    redirect(`/room?id=${roomId} &nickname=${nickname}`);
+    const roomId = await handleRoomCreation(finalNickname);
+    router.push(`/room?id=${roomId}&nickname=${finalNickname}`); // Use router.push for navigation
   };
-
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-6">
+      {/* Toast */}
+      {toast.visible && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast({ ...toast, visible: false })}
+        />
+      )}
+
       {/* Header */}
       <header className="flex flex-col items-center mb-6">
-        <Image src="/logo_bug_hunter.png" alt="Bug Hunter Arena Logo" width={48} height={48} className="w-12 mb-2" />
-        <h1 className="text-xl font-bold">Bug Hunter Arena</h1>
+        <Image src="/assets/img/logo_bug_hunter.png" alt="Bug Hunter Arena Logo" width={150} height={200} />
       </header>
 
       {/* Buttons */}
       <div className="w-full max-w-md flex flex-col gap-4">
         <button
-          className="w-full py-3 text-lg font-semibold rounded-2xl border-1 border-gray-300 hover:bg-gray-100"
+          className="w-full py-3 text-lg font-semibold rounded-2xl border-1 border-gray-300 hover:bg-gray-100 flex items-center gap-2 pl-[25%]"
           onClick={handleJoinGame}
         >
-          ➡ Rejoindre une Partie
+          <Image src="/assets/img/RightArrow.png" alt="Join button" width={32} height={32} />
+          <span>Rejoindre une Partie</span>
         </button>
-        <button className="w-full py-3 text-lg font-semibold rounded-2xl border-1 border-gray-300 hover:bg-gray-100"
+        <button
+          className="w-full py-3 text-lg font-semibold rounded-2xl border-1 border-gray-300 hover:bg-gray-100 flex items-center gap-2 pl-[25%]"
           onClick={handleCreateRoom}
         >
-          ➕ Crée une Partie
+          <Image src="/assets/img/Add.png" alt="Add button" width={32} height={32} />
+          <span>Créer une Partie</span>
         </button>
       </div>
 
       {/* Main Section */}
       <div className="mt-8 flex flex-col md:flex-row gap-6 w-full max-w-2xl">
         {/* Character Selection */}
-        <div className="flex flex-col items-center p-6 bg-white rounded-lg shadow-md w-full md:w-1/2">
-          <div className="w-16 h-16 bg-gray-300 rounded-full flex items-center justify-center mb-3"></div>
-          <p className="text-sm font-medium text-gray-600">Choisir un personnage et un surnom</p>
+        <div className="flex flex-col items-center justify-center p-6 bg-white rounded-lg shadow-md w-full md:w-1/2">
+          <div className="flex items-center gap-4 mb-3">
+            <div className="relative w-16 h-16 rounded-full flex items-center justify-center">
+              {avatar && (
+                <Image src={avatar} alt="Avatar" className="rounded-full object-cover" width={64} height={64} />
+              )}
+              <div
+                className="absolute bottom-0 right-0 w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-md cursor-pointer"
+                onClick={handleReloadAvatar}
+              >
+                <Image src="/assets/img/reload.png" alt="Reload" width={15} height={15} />
+              </div>
+            </div>
+            <p className="text-sm font-medium text-gray-600 text-center">Choisir un personnage et un surnom</p>
+          </div>
           <input
             type="text"
+            placeholder="Pseudo"
             value={nickname}
             onChange={(e) => setNickname(e.target.value)}
             className="w-full mt-2 p-2 border rounded-md text-center"
           />
-          <button className="mt-3 py-2 px-4 bg-yellow-400 rounded-md font-semibold hover:bg-yellow-500">
-            ✔ Validée
-          </button>
         </div>
 
         {/* Instructions */}
         <div className="flex flex-col items-center p-6 bg-white rounded-lg shadow-md w-full md:w-1/2">
-          <h2 className="text-lg font-bold text-gray-700 mb-2">Comment Jouer ?</h2>
-          <Image src="/Group 1.png" alt="" width={192} height={192} />
-          <p className="text-sm text-gray-600 text-center">
-            Chaque équipe désigne un expert en PHP, JavaScript (ReactJS), C++, C# et mobile.
-          </p>
+          <h2 className="text-lg font-bold text-gray-700 mb-4">Comment Jouer ?</h2>
+          <Carousel
+            images={[
+              "/assets/img/Group 1.png",
+              "/assets/img/data.png",
+              "/assets/img/success.png",
+            ]}
+            texts={[
+              "Chaque équipe s'affronte dans une série de défis de programmation.",
+              "Trouvez et corrigez les bugs pour marquer des points.",
+              "L'équipe avec le plus de points à la fin de la partie remporte la victoire!"
+            ]}
+            interval={8000}
+          />
         </div>
       </div>
+
+      {/* Footer */}
+      <footer className="mt-8 text-center text-gray-600">
+        <p>© 2025 Bug Hunter Arena. Tous droits réservés.</p>
+        <p>Développé par l&apos;équipe de Bug Hunter Arena.</p>
+      </footer>
 
       {/* Popup Modal */}
       {isPopupOpen && (
@@ -118,6 +214,6 @@ const App = () => {
       )}
     </div>
   );
-}
+};
 
 export default App;
