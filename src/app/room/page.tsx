@@ -54,9 +54,7 @@ export default function Page() {
     setTimeout(() => setShowToast(false), 3000); // Cache le toast après 3 secondes
   };
 
-  const goHome = () => {
-    redirect("/");
-  };
+
   const goHome = () => {
     redirect("/");
   };
@@ -83,16 +81,6 @@ export default function Page() {
     router.push(`/in-game?${queryParams}`);
   };
 
-  function getLanguages() {
-    return [
-      { id: "lang-js", label: "JavaScript" },
-      { id: "lang-css", label: "Css" },
-      { id: "lang-html", label: "Html" },
-      { id: "lang-csharp", label: "C#" },
-      { id: "lang-php", label: "Php" },
-      { id: "lang-python", label: "Python" },
-    ];
-  }
   function getLanguages() {
     return [
       { id: "js", label: "JavaScript" },
