@@ -13,6 +13,8 @@ export default function InGamePage() {
   const questionRef = useRef(null);
   const [currentQuestion, setCurrentQuestion] = useState(null);
   const [userTeam, setUserTeam] = useState<'red' | 'blue' | 'creator'>('blue');
+  const [showVictoryPopup, setShowVictoryPopup] = useState(false);
+  const [winningTeam, setWinningTeam] = useState<'red' | 'blue' | null>(null);
   
   const [teamScores, setTeamScores] = useState({
     blue: 0,
@@ -24,6 +26,22 @@ export default function InGamePage() {
     red: [] as { name: string }[],
     creator: [] as { name: string }[]
   });
+
+  // Surveiller les scores
+  useEffect(() => {
+    if (teamScores.blue >= 5) {
+      setWinningTeam('blue');
+      setShowVictoryPopup(true);
+    } else if (teamScores.red >= 5) {
+      setWinningTeam('red');
+      setShowVictoryPopup(true);
+    }
+  }, [teamScores]);
+
+  const handleReturnToRoom = () => {
+    const connectionId = searchParams.get('id');
+    router.push(`/room?id=${connectionId}`);
+  };
 
   useEffect(() => {
     if (socket) {
@@ -84,7 +102,7 @@ export default function InGamePage() {
   }, [searchParams]);
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex relative">
       {/* Liste des joueurs équipe bleue */}
       <div className="w-64 bg-blue-50 p-4">
         <div className="flex justify-between items-center mb-4">
@@ -103,7 +121,9 @@ export default function InGamePage() {
         <Question 
           ref={questionRef}
           onQuestionChange={setCurrentQuestion}
-          team={userTeam}  // Assurez-vous que userTeam est bien passé
+          team={userTeam}
+          duration={Number(searchParams.get('duration')) || 260}
+          difficulty={searchParams.get('difficulty') || undefined}
         />
       </div>
 
@@ -119,6 +139,27 @@ export default function InGamePage() {
           </div>
         ))}
       </div>
+
+      {/* Popup de victoire */}
+      {showVictoryPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className={`bg-white p-8 rounded-lg shadow-xl ${
+            winningTeam === 'blue' ? 'border-blue-500' : 'border-red-500'
+          } border-4`}>
+            <h2 className={`text-2xl font-bold mb-4 ${
+              winningTeam === 'blue' ? 'text-blue-500' : 'text-red-500'
+            }`}>
+              L'équipe {winningTeam === 'blue' ? 'Bleue' : 'Rouge'} a gagné !
+            </h2>
+            <button
+              onClick={handleReturnToRoom}
+              className="mt-4 px-6 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors"
+            >
+              Retourner à la salle
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

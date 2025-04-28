@@ -32,7 +32,7 @@ export default function Page() {
     const [teamAdmin, setTeamAdmin] = useState<string[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
-    const [difficulte, setDifficulte] = useState<number>(1);
+    const [difficulte, setDifficulte] = useState<number | null>(null);
     const [duree, setDuree] = useState<number>(260);
 
     const goHome = () => {
@@ -56,8 +56,8 @@ export default function Page() {
         const queryParams = new URLSearchParams({
             languages: selectedLanguages.join(','),
             id: connectionId || '',
-            difficulty: difficulte.toString(),
-            duration: duree.toString()
+            duration: duree.toString(),
+            ...(difficulte && { difficulty: difficulte.toString() })
         }).toString();
         
         router.push(`/in-game?${queryParams}`);
@@ -67,7 +67,7 @@ export default function Page() {
         return [
             { id: "js", label: "JavaScript" },
             { id: "Cpp", label: "C++" },
-            { id: "html", label: "Html" },
+            { id: "Mobile", label: "Mobile" },
             { id: "Csharp", label: "C#" },
             { id: "PHP", label: "PHP" },
         ];
@@ -488,7 +488,8 @@ export default function Page() {
                                 <input
                                     id="duree"
                                     type="number"
-                                    defaultValue={260}
+                                    value={duree}
+                                    onChange={(e) => setDuree(Number(e.target.value))}
                                     className="border border-gray-300 rounded-lg px-3 py-1 w-32"
                                 />
                             </div>
@@ -497,29 +498,30 @@ export default function Page() {
                             <div className="mb-4 flex items-center space-x-4">
                                 <p className="font-medium">Difficulté</p>
                                 <div className="flex items-center space-x-2">
-                                    {["1", "2", "3"].map((level) => (
+                                    {["1", "2", "3", "all"].map((level) => (
                                         <label
                                             key={level}
-                                            className="flex items-center justify-center w-10 h-10 border border-gray-300 rounded-lg cursor-pointer text-md font-semibold"
+                                            className={`flex items-center justify-center w-10 h-10 border ${
+                                                String(difficulte) === level || (difficulte === null && level === "all")
+                                                    ? "bg-blue-500 text-white"
+                                                    : "border-gray-300"
+                                            } rounded-lg cursor-pointer text-md font-semibold hover:bg-blue-100`}
                                         >
                                             <input
                                                 type="radio"
                                                 name="difficulty"
-                                                className="hidden"
+                                                value={level}
+                                                checked={String(difficulte) === level || (difficulte === null && level === "all")}
                                                 onChange={(e) => {
-                                                    e.target.parentElement?.classList.add("bg-gray-300");
-                                                    document
-                                                        .querySelectorAll('input[name="difficulty"]')
-                                                        .forEach((input) => {
-                                                            if (input !== e.target) {
-                                                                input.parentElement?.classList.remove(
-                                                                    "bg-gray-300"
-                                                                );
-                                                            }
-                                                        });
+                                                    if (e.target.value === "all") {
+                                                        setDifficulte(null);
+                                                    } else {
+                                                        setDifficulte(Number(e.target.value));
+                                                    }
                                                 }}
+                                                className="hidden"
                                             />
-                                            {level}
+                                            {level === "all" ? "Tout" : level}
                                         </label>
                                     ))}
                                 </div>

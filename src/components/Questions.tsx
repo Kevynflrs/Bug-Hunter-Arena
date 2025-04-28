@@ -2,18 +2,20 @@
 
 import { useState, useEffect, forwardRef } from "react";
 import Reponses from './Reponses';
+import { redirect } from 'next/navigation';
 
 interface QuestionProps {
   onQuestionChange?: (question: QuestionData) => void;
-  team: 'red' | 'blue' | 'creator';  // Rendre team obligatoire
+  team: 'red' | 'blue' | 'creator';
+  duration?: number;
+  difficulty?: string;
 }
 
-const Question = forwardRef(({ onQuestionChange, team = 'blue' }: QuestionProps, ref) => {
+const Question = forwardRef(({ onQuestionChange, team = 'blue', duration = 260, difficulty }: QuestionProps, ref) => {
   const [question, setQuestion] = useState<QuestionData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  console.log('Current team:', team); // Pour déboguer
+  const [timeLeft, setTimeLeft] = useState(duration);
 
   const teamThemes = {
     red: {
@@ -36,6 +38,7 @@ const Question = forwardRef(({ onQuestionChange, team = 'blue' }: QuestionProps,
     }
   };
 
+  // Define colors here, before using it
   const colors = teamThemes[team];
 
   const fetchNewQuestion = async () => {
@@ -43,31 +46,52 @@ const Question = forwardRef(({ onQuestionChange, team = 'blue' }: QuestionProps,
       setIsLoading(true);
       setError(null);
       
-      // Récupérer les langages depuis l'URL
       const params = new URLSearchParams(window.location.search);
       const languages = params.get('languages') || '';
+      const queryParams = new URLSearchParams({
+        languages,
+        ...(difficulty && { difficulty })
+      }).toString();
       
-      const response = await fetch(`/api/getQuestion?languages=${languages}`, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        }
-      });
+      const response = await fetch(`/api/getQuestion?${queryParams}`);
+      const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(`Erreur HTTP: ${response.status}`);
+        throw new Error(`HTTP Error: ${response.status}`);
       }
 
-      const data = await response.json();
       setQuestion(data.question);
+      setTimeLeft(duration);
+      if (onQuestionChange) {
+        onQuestionChange(data.question);
+      }
     } catch (error) {
-      console.error('Erreur:', error);
-      setError(error instanceof Error ? error.message : 'Erreur de chargement');
+      console.error('Error:', error);
+      setError(error instanceof Error ? error.message : 'Loading error');
     } finally {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchNewQuestion();
+  }, []);
+
+  useEffect(() => {
+    if (!question) return;
+
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          fetchNewQuestion(); // Passe automatiquement à la question suivante
+          return duration;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [question, duration]);
 
   const handleAnswerSubmit = (isCorrect: boolean) => {
     if (isCorrect) {
@@ -85,12 +109,8 @@ const Question = forwardRef(({ onQuestionChange, team = 'blue' }: QuestionProps,
     fetchNewQuestion();
   };
 
-  useEffect(() => {
-    fetchNewQuestion();
-  }, []);
-
   // Utiliser colors en s'assurant qu'il existe
-  if (isLoading) return <div className={colors?.text || 'text-gray-600'}>Chargement...</div>;
+  if (isLoading) return <div className={colors.text}>Chargement...</div>;
   if (error) return <div className="text-red-500">{error}</div>;
   if (!question) return null;
 
@@ -100,7 +120,11 @@ const Question = forwardRef(({ onQuestionChange, team = 'blue' }: QuestionProps,
         <div className="flex justify-between items-center mb-4">
           <div>
             <h2 className="text-lg font-bold text-gray-800">Thème : {question?.theme}</h2>
-            <p className="text-sm text-gray-600">Niveau : {question?.niveau}</p>
+            <p className="text-sm text-gray-600">
+              Niveau : {question?.niveau}
+              {/* Afficher le temps pour tous les utilisateurs */}
+              <span className="ml-4">Temps restant : {timeLeft}s</span>
+            </p>
           </div>
           {team === 'creator' && (
             <button
