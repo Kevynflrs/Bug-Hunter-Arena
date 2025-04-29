@@ -1,10 +1,10 @@
 "use client"; // If using the Next.js App Router
 import React, { useEffect, useState } from "react";
 import { redirect } from "next/navigation";
-import Image from "next/image";
+
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
-import Toast from "@/components/Toast";
+
 import { getSocket } from "@/socket";
 
 const socket = getSocket();
@@ -81,478 +81,366 @@ export default function Page() {
             { id: "Csharp", label: "C#" },
             { id: "PHP", label: "PHP" },
         ];
-
     }
 
-    const queryParams = new URLSearchParams({
-      languages: selectedLanguages.join(","),
-      id: connectionId || "",
-      difficulty: difficulte.toString(),
-      duration: duree.toString(),
-    }).toString();
+    useEffect(() => {
+        let isMounted = true; // Track if the component is mounted
 
-    router.push(`/in-game?${queryParams}`);
-  };
+        const initializeSocket = () => {
+            if (!socket.connected) {
+                socket.connect(); // Explicitly connect the socket if not already connected
+            }
 
-  function getLanguages() {
-    return [
-      { id: "js", label: "JavaScript" },
-      { id: "Cpp", label: "C++" },
-      { id: "html", label: "Html" },
-      { id: "Csharp", label: "C#" },
-      { id: "PHP", label: "PHP" },
-    ];
-  }
+            function onConnect() {
+                console.log("Connected to socket:", socket.id);
 
-  useEffect(() => {
-    let isMounted = true; // Track if the component is mounted
+                const storedUUID = localStorage.getItem("sessionID");
+                const storedTimestamp = localStorage.getItem("sessionTimestamp");
+                const currentTime = Date.now();
 
-    const initializeSocket = () => {
-      if (!socket.connected) {
-        socket.connect(); // Explicitly connect the socket if not already connected
-      }
+                const storedRoomId = localStorage.getItem("roomId");
 
-      function onConnect() {
-        console.log("Connected to socket:", socket.id);
-
-        const storedUUID = localStorage.getItem("sessionID");
-        const storedTimestamp = localStorage.getItem("sessionTimestamp");
-        const currentTime = Date.now();
-
-        if (
-          storedUUID &&
-          storedTimestamp &&
-          currentTime - Number(storedTimestamp) < UUID_EXPIRATION_TIME
-        ) {
-          console.log("Reusing existing UUID:", storedUUID);
-          localStorage.setItem("sessionTimestamp", currentTime.toString()); // Reset the timer
-          setName(localStorage.getItem("name") || ""); // Retrieve the nickname from localStorage
-        } else {
-          console.log("Requesting new UUID from server");
-          console.log("Connection ID:", connectionId);
-          console.log("Nickname:", name);
-          socket.emit("request_uuid", connectionId); // Request a new UUID from the server
-        }
-      }
-
-      function onDisconnect() {
-        console.log("Disconnected from socket, reason:", socket.disconnected);
-      }
-
-      if (socket) {
-        // Clean up previous listeners to avoid duplicates
-        socket.off("connect");
-        socket.off("disconnect");
-        socket.off("assign_uuid");
-        socket.off("user_joined");
-        socket.off("team_update_full");
-        socket.off("team_full");
-        socket.off("room_joined");
-
-        socket.on("connect", onConnect);
-        socket.on("disconnect", onDisconnect);
-
-        socket.on("assign_uuid", (sessionID) => {
-          console.log("Received UUID from server:", sessionID);
-          const currentTime = Date.now();
-          localStorage.setItem("sessionID", sessionID); // Store UUID in localStorage
-          localStorage.setItem("sessionTimestamp", currentTime.toString()); // Store timestamp
-          localStorage.setItem("name", name);
-          localStorage.setItem("team", "admin");
-        });
-
-        socket.on("user_joined", (user) => {
-          if (user.team === "spectator") {
-            setTeamSpectator((prevSpectators) => {
-              if (!prevSpectators.includes(user.name)) {
-                setTeamRed((prevRed) =>
-                  prevRed.filter((member) => member !== user.name)
-                );
-                setTeamBlue((prevBlue) =>
-                  prevBlue.filter((member) => member !== user.name)
-                );
-                setTeamAdmin((prevAdmin) =>
-                  prevAdmin.filter((member) => member !== user.name)
-                );
-                return [...prevSpectators, user.name];
-              }
-              return prevSpectators;
-            });
-          }
-
-          if (user.team === "red") {
-            setTeamRed((prevRed) => {
-              if (!prevRed.includes(user.name)) {
-                setTeamSpectator((prevRed) =>
-                  prevRed.filter((member) => member !== user.name)
-                );
-                setTeamBlue((prevBlue) =>
-                  prevBlue.filter((member) => member !== user.name)
-                );
-                setTeamAdmin((prevAdmin) =>
-                  prevAdmin.filter((member) => member !== user.name)
-                );
-                return [...prevRed, user.name];
-              }
-              return prevRed;
-            });
-          }
-          if (user.team === "blue") {
-            setTeamBlue((prevBlue) => {
-              if (!prevBlue.includes(user.name)) {
-                setTeamSpectator((prevRed) =>
-                  prevRed.filter((member) => member !== user.name)
-                );
-                setTeamRed((prevBlue) =>
-                  prevBlue.filter((member) => member !== user.name)
-                );
-                setTeamAdmin((prevAdmin) =>
-                  prevAdmin.filter((member) => member !== user.name)
-                );
-
-                return [...prevBlue, user.name];
-              }
-              return prevBlue;
-            });
-          }
-          if (user.team === "admin") {
-            setTeamAdmin((prevAdmin) => {
-              if (!prevAdmin.includes(user.name)) {
-                setTeamSpectator((prevRed) =>
-                  prevRed.filter((member) => member !== user.name)
-                );
-                setTeamRed((prevBlue) =>
-                  prevBlue.filter((member) => member !== user.name)
-                );
-                setTeamBlue((prevAdmin) =>
-                  prevAdmin.filter((member) => member !== user.name)
-                );
-
-                return [...prevAdmin, user.name];
-              }
-              return prevAdmin;
-            });
-          }
-        });
-
-        socket.emit(
-          "join_room",
-          connectionId,
-          name,
-          localStorage.getItem("sessionID"),
-          localStorage.getItem("team")
-        );
-
-        socket.on("room_joined", (playersInRoom) => {
-          interface Player {
-            name: string;
-            team: "spectator" | "red" | "blue" | "admin";
-          }
-
-          playersInRoom.forEach((user: Player) => {
-            if (user.team === "spectator") {
-              setTeamSpectator((prevSpectators) => {
-                if (!prevSpectators.includes(user.name)) {
-                  setTeamRed((prevRed) =>
-                    prevRed.filter((member) => member !== user.name)
-                  );
-                  setTeamBlue((prevBlue) =>
-                    prevBlue.filter((member) => member !== user.name)
-                  );
-                  setTeamAdmin((prevAdmin) =>
-                    prevAdmin.filter((member) => member !== user.name)
-                  );
-                  return [...prevSpectators, user.name];
+                if (storedUUID && storedTimestamp && currentTime - Number(storedTimestamp) < UUID_EXPIRATION_TIME && storedRoomId === connectionId) {
+                    console.log("Reusing existing UUID:", storedUUID);
+                    localStorage.setItem("sessionTimestamp", currentTime.toString()); // Reset the timer
+                    setName(localStorage.getItem("name") || ""); // Retrieve the nickname from localStorage
+                } else {
+                    console.log("Requesting new UUID from server");
+                    console.log("Connection ID:", connectionId);
+                    console.log("Nickname:", name);
+                    socket.emit("request_uuid", connectionId); // Request a new UUID from the server
                 }
-                return prevSpectators;
-              });
             }
 
-            if (user.team === "red") {
-              setTeamRed((prevRed) => {
-                if (!prevRed.includes(user.name)) {
-                  setTeamSpectator((prevRed) =>
-                    prevRed.filter((member) => member !== user.name)
-                  );
-                  setTeamBlue((prevBlue) =>
-                    prevBlue.filter((member) => member !== user.name)
-                  );
-                  setTeamAdmin((prevAdmin) =>
-                    prevAdmin.filter((member) => member !== user.name)
-                  );
-                  return [...prevRed, user.name];
+            function onDisconnect() {
+                console.log("Disconnected from socket, reason:", socket.disconnected);
+            }
+
+            if (socket) {
+                // Clean up previous listeners to avoid duplicates
+                socket.off("connect");
+                socket.off("disconnect");
+                socket.off("assign_uuid");
+                socket.off("user_joined");
+                socket.off("room_joined");
+
+                socket.on("connect", onConnect);
+                socket.on("disconnect", onDisconnect);
+
+                socket.on("assign_uuid", (sessionID) => {
+                    console.log("Received UUID from server:", sessionID);
+                    const currentTime = Date.now();
+                    localStorage.setItem("sessionID", sessionID); // Store UUID in localStorage
+                    localStorage.setItem("sessionTimestamp", currentTime.toString()); // Store timestamp
+                    localStorage.setItem("name", name);
+                    localStorage.setItem("team", "admin");
+                });
+
+                socket.on("user_joined", (user) => {
+                    console.log("User joined:", user);
+                    // setUsersList((prevUsers) => Array.isArray(user) ? [...prevUsers, ...user] : prevUsers);
+
+                    if (user.team === "spectator") {
+                        setTeamSpectator((prevSpectators) => {
+                            if (!prevSpectators.includes(user.name)) {
+                                setTeamRed((prevRed) =>
+                                    prevRed.filter((member) => member !== user.name)
+                                );
+                                setTeamBlue((prevBlue) =>
+                                    prevBlue.filter((member) => member !== user.name)
+                                );
+                                setTeamAdmin((prevAdmin) =>
+                                    prevAdmin.filter((member) => member !== user.name)
+                                );
+                                return [...prevSpectators, user.name];
+                            }
+                            return prevSpectators;
+                        });
+                    }
+
+                    if (user.team === "red") {
+                        setTeamRed((prevRed) => {
+                            if (!prevRed.includes(user.name)) {
+                                setTeamSpectator((prevRed) =>
+                                    prevRed.filter((member) => member !== user.name)
+                                );
+                                setTeamBlue((prevBlue) =>
+                                    prevBlue.filter((member) => member !== user.name)
+                                );
+                                setTeamAdmin((prevAdmin) =>
+                                    prevAdmin.filter((member) => member !== user.name)
+                                );
+                                return [...prevRed, user.name];
+                            }
+                            return prevRed;
+                        });
+                    }
+                    if (user.team === "blue") {
+                        setTeamBlue((prevBlue) => {
+                            if (!prevBlue.includes(user.name)) {
+                                setTeamSpectator((prevRed) =>
+                                    prevRed.filter((member) => member !== user.name)
+                                );
+                                setTeamRed((prevBlue) =>
+                                    prevBlue.filter((member) => member !== user.name)
+                                );
+                                setTeamAdmin((prevAdmin) =>
+                                    prevAdmin.filter((member) => member !== user.name)
+                                );
+
+                                return [...prevBlue, user.name];
+                            }
+                            return prevBlue;
+                        });
+                    }
+                    if (user.team === "admin") {
+                        setTeamAdmin((prevAdmin) => {
+                            if (!prevAdmin.includes(user.name)) {
+                                setTeamSpectator((prevRed) =>
+                                    prevRed.filter((member) => member !== user.name)
+                                );
+                                setTeamRed((prevBlue) =>
+                                    prevBlue.filter((member) => member !== user.name)
+                                );
+                                setTeamBlue((prevAdmin) =>
+                                    prevAdmin.filter((member) => member !== user.name)
+                                );
+
+                                return [...prevAdmin, user.name];
+                            }
+                            return prevAdmin;
+                        });
+                    }
+
+
+                });
+
+                socket.emit("join_room", connectionId, name, localStorage.getItem("sessionID"), localStorage.getItem("team"));
+
+                socket.on("room_joined", (playersInRoom) => {
+                    console.log("Room joined successfully:", playersInRoom);
+
+                    // Réinitialiser toutes les équipes
+                    setTeamRed([]);
+                    setTeamBlue([]);
+                    setTeamSpectator([]);
+                    setTeamAdmin([]);
+
+                    interface Player {
+                        name: string;
+                        team: string;
+                    }
+
+                    // Utiliser un Set pour garder une trace des utilisateurs déjà ajoutés
+                    const addedUsers = new Set();
+
+                    playersInRoom.forEach((user: Player) => {
+                        if (addedUsers.has(user.name)) {
+                            return; // Ignorer les utilisateurs en double
+                        }
+
+                        addedUsers.add(user.name);
+
+                        switch (user.team) {
+                            case "spectator":
+                                setTeamSpectator(prev => [...prev, user.name]);
+                                break;
+                            case "red":
+                                setTeamRed(prev => [...prev, user.name]);
+                                break;
+                            case "blue":
+                                setTeamBlue(prev => [...prev, user.name]);
+                                break;
+                            case "admin":
+                                setTeamAdmin(prev => [...prev, user.name]);
+                                break;
+                        }
+                    });
+                });
+            }
+        };
+
+        const fetchRoom = async () => {
+            try {
+                const response = await fetch(`/api/getRoomFromId?id=${connectionId}`);
+                if (!response.ok) {
+                    throw new Error("Failed to fetch room data");
                 }
-                return prevRed;
-              });
+                const data = await response.json();
+                if (isMounted) setRoom(data); // Only update state if mounted
+            } catch (error) {
+                console.error("Error fetching room:", error);
             }
+        };
 
-            if (user.team === "blue") {
-              setTeamBlue((prevBlue) => {
-                if (!prevBlue.includes(user.name)) {
-                  setTeamSpectator((prevRed) =>
-                    prevRed.filter((member) => member !== user.name)
-                  );
-                  setTeamRed((prevBlue) =>
-                    prevBlue.filter((member) => member !== user.name)
-                  );
-                  setTeamAdmin((prevAdmin) =>
-                    prevAdmin.filter((member) => member !== user.name)
-                  );
-                  return [...prevBlue, user.name];
-                }
-                return prevBlue;
-              });
+        fetchRoom();
+        initializeSocket();
+
+        return () => {
+            isMounted = false; // Mark as unmounted
+            console.log("Cleaning up socket connection...");
+            if (socket) {
+                socket.off("connect");
+                socket.off("disconnect");
+                socket.off("assign_uuid");
+                socket.off("user_joined");
+                socket.off("team_update_full");
+                socket.off("team_full");
+                socket.off("room_joined");
+                socket.disconnect(); // Explicitly disconnect the socket
             }
+        };
+    }, [connectionId, name]);
 
-            if (user.team === "admin") {
-              setTeamAdmin((prevAdmin) => {
-                if (!prevAdmin.includes(user.name)) {
-                  setTeamSpectator((prevRed) =>
-                    prevRed.filter((member) => member !== user.name)
-                  );
-                  setTeamRed((prevBlue) =>
-                    prevBlue.filter((member) => member !== user.name)
-                  );
-                  setTeamBlue((prevAdmin) =>
-                    prevAdmin.filter((member) => member !== user.name)
-                  );
-                  return [...prevAdmin, user.name];
-                }
-                return prevAdmin;
-              });
-            }
-          });
-        });
-      }
-    };
+    return (
 
-    const fetchRoom = async () => {
-      try {
-        const response = await fetch(`/api/getRoomFromId?id=${connectionId}`);
-        if (!response.ok) {
-          throw new Error("Failed to fetch room data");
-        }
-        const data = await response.json();
-        if (isMounted) setRoom(data); // Only update state if mounted
-      } catch (error) {
-        console.error("Error fetching room:", error);
-      }
-    };
 
-    fetchRoom();
-    initializeSocket();
 
-    return () => {
-      isMounted = false; // Mark as unmounted
-      console.log("Cleaning up socket connection...");
-      if (socket) {
-        socket.off("connect");
-        socket.off("disconnect");
-        socket.off("assign_uuid");
-        socket.off("user_joined");
-        socket.off("team_update_full");
-        socket.off("team_full");
-        socket.off("room_joined");
-        socket.disconnect(); // Explicitly disconnect the socket
-      }
-    };
-  }, [connectionId, name]);
+        <div className="min-h-screen flex flex-col items-center justify-center p-4">
 
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4">
-      {/* Toast */}
-      {showToast && (
-        <Toast
-          message={toastMessage}
-          type={toastType}
-          onClose={() => setShowToast(false)}
-        />
-      )}
-
-      {/* Room ID */}
-      <div className="rounded-2xl border-2 border-gray-200 p-4 mb-4 max-w-5xl flex items-center justify-between">
-        <p className="text-lg font-semibold">
-          Room ID: {connectionId || "Loading..."}
-        </p>
-        <button
-          type="button"
-          className="ml-2"
-          onClick={() => {
-            if (connectionId) {
-              navigator.clipboard.writeText(connectionId);
-              showToastMessage("Room ID copied to clipboard!", "success");
-            }
-          }}
-        >
-          <Image
-            src="/assets/img/copy.png"
-            alt="Copy"
-            width={32}
-            height={32}
-            className="w-6 h-6 cursor-pointer"
-          />
-        </button>
-      </div>
-
-      {/* Main container with two columns */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-5xl">
-        {/* Left Column: Room Name + Teams */}
-        <div className="rounded-2xl border-2 border-gray-200 p-4">
-          {/* Header row: Room Name + refresh icon */}
-          <div className="flex flex-col mb-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold">
-                {room?.name != null ? `${room.name}'s room` : "Loading..."}
-              </h2>
-              <button
-                type="button"
-                className="text-gray-500 hover:text-gray-700 cursor-pointer"
-                title="Retourner à l'accueil"
-                onClick={goHome}
-              >
-                <Image
-                  src="/assets/img/return.png"
-                  alt="Return"
-                  width={32}
-                  height={32}
-                  className="w-7 h-7"
-                />
-              </button>
+            {/* Room ID */}
+            <div className="rounded-2xl border-2 border-gray-200 p-4 mb-4 max-w-5xl flex items-center justify-between">
+                <p className="text-lg font-semibold">
+                    Room ID: {connectionId || "Loading..."}
+                </p>
+                <button
+                    type="button"
+                    className="ml-2"
+                    onClick={() => {
+                        if (connectionId) {
+                            navigator.clipboard.writeText(connectionId);
+                            alert("Room ID copied to clipboard!");
+                        }
+                    }}
+                >
+                    <img
+                        src="/assets/img/copy.png"
+                        alt="Copy"
+                        className="w-6 h-6 cursor-pointer"
+                    />
+                </button>
             </div>
-            {/* Gray line */}
-            <hr className="border-gray-200 mt-2" />
-          </div>
 
-          {/* Join team buttons and error display */}
-          {error && (
-            <div className="text-red-500 font-semibold mb-4">{error}</div>
-          )}
+            {/* Main container with two columns */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-5xl">
+                {/* Left Column: Room Name + Teams */}
+                <div className="rounded-2xl border-2 border-gray-200 p-4">
+                    {/* Header row: Room Name + refresh icon */}
+                    <div className="flex flex-col mb-4">
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-xl font-semibold">
+                                {room?.name != null ? `${room.name}'s room` : "Loading..."}
+                            </h2>
+                            <button
+                                type="button"
+                                className="text-gray-500 hover:text-gray-700 cursor-pointer"
+                                title="Retourner à l'accueil"
+                                onClick={goHome}
+                            >
+                                <img
+                                    src="/assets/img/return.png"
+                                    alt="Return"
+                                    className="w-7 h-7"
+                                />
+                            </button>
+                        </div>
+                        {/* Gray line */}
+                        <hr className="border-gray-200 mt-2" />
+                    </div>
 
-          {/* Équipe Bleu */}
-          <div className="mb-4">
-            <div className="flex items-center mb-2 space-x-2">
-              <p className="font-semibold text-blue-500">Équipe Bleu</p>
-              <Image
-                src="/assets/img/t-shirt_blue.png"
-                alt="Blue Team"
-                width={32}
-                height={32}
-                className="w-7 h-7"
-              />
-            </div>
-            {teamBlue.map((user, index) => (
-              <div key={index} className="flex items-center space-x-2 mb-2">
-                <Image
-                  src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
-                  alt="profile"
-                  width={32}
-                  height={32}
-                  className="w-6 h-6 rounded-full bg-gray-300 border"
-                />
-                <span>{user}</span>
-              </div>
-            ))}
-          </div>
+                    {/* Join team buttons and error display */}
+                    {error && <div className="text-red-500 font-semibold mb-4">{error}</div>}
 
-          {/* Équipe Rouge */}
-          <div>
-            <div className="flex items-center mb-2 space-x-2">
-              <p className="font-semibold text-red-500">Équipe Rouge</p>
-              <Image
-                src="/assets/img/t-shirt_red.png"
-                alt="Red Team"
-                width={32}
-                height={32}
-                className="w-7 h-7"
-              />
-            </div>
-            {teamRed.map((user, index) => (
-              <div key={index} className="flex items-center space-x-2 mb-2">
-                <Image
-                  src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
-                  alt="profile"
-                  className="w-6 h-6 rounded-full bg-gray-300 border"
-                  width={32}
-                  height={32}
-                />
-                <span className="text-red-500">{user}</span>
-              </div>
-            ))}
-          </div>
+                    {/* Équipe Bleu */}
+                    <div className="mb-4">
+                        <div className="flex items-center justify-between mb-2">
+                            <p className="font-semibold">Équipe Bleu</p>
+                        </div>
+                        {teamBlue.map((user, index) => (
+                            <div key={index} className="flex items-center space-x-2 mb-2">
+                                <img
+                                    src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
+                                    alt="profile"
+                                    className="w-6 h-6 rounded-full bg-gray-300 border"
+                                />
+                                <span>{user}</span>
+                            </div>
+                        ))}
+                    </div>
 
-          <div>
-            <div className="flex items-center mb-2 space-x-2">
-              <p className="font-semibold text-gray-500">Spectateurs</p>
-              <Image
-                src="/assets/img/eyes.png"
-                alt="Spectateurs"
-                width={32}
-                height={32}
-                className="w-7 h-7"
-              />
-            </div>
-            {teamSpectator.map((user, index) => (
-              <div key={index} className="flex items-center space-x-2 mb-2">
-                <Image
-                  src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
-                  alt="profile"
-                  width={32}
-                  height={32}
-                  className="w-6 h-6 rounded-full bg-gray-300 border"
-                />
-                <span>{user}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-        {/* Right Column: Maîtres du Jeu + Paramètre de Jeu */}
-        <div className="flex flex-col space-y-4">
-          {/* Maîtres du Jeu (still using radio buttons) */}
-          <div className="rounded-2xl border-2 border-gray-200 p-4">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center mb-4 space-x-2">
-                <h2 className="text-xl font-semibold">Maîtres du Jeu</h2>
-                <span role="img" aria-label="Game Master" className="text-2xl">
-                  <Image
-                    src="/assets/img/mvp.png"
-                    alt="Return"
-                    width={32}
-                    height={32}
-                    className="w-7 h-7"
-                  />
-                </span>
-              </div>
-            </div>
-            {/* Gray line */}
-            <hr className="border-gray-200 mb-4" />
-            <div className="flex items-center space-x-2 mb-2">
-              {teamAdmin.map((user, index) => (
-                <div key={index} className="flex items-center space-x-2 mb-2">
-                  <Image
-                    src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
-                    alt="profile"
-                    width={32}
-                    height={32}
-                    className="w-6 h-6 rounded-full bg-gray-300 border"
-                  />
-                  <span>{user}</span>
+                    {/* Équipe Rouge */}
+                    <div>
+                        <div className="flex items-center justify-between mb-2">
+                            <p className="font-semibold">Équipe Rouge</p>
+                        </div>
+                        {teamRed.map((user, index) => (
+                            <div key={index} className="flex items-center space-x-2 mb-2">
+                                <img
+                                    src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
+                                    alt="profile"
+                                    className="w-6 h-6 rounded-full bg-gray-300 border"
+                                />
+                                <span>{user}</span>
+                            </div>
+                        ))}
+                    </div>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Paramètre de Jeu */}
-          <div className="rounded-2xl border-2 border-gray-200 p-4">
-            <div className="flex items-center mb-4 space-x-2">
-              <h2 className="text-xl font-semibold">Paramètre de Jeu</h2>
-              <Image
-                src="/assets/img/setting.png"
-                alt="Settings"
-                width={32}
-                height={32}
-                className="w-7 h-7"
-              />
-            </div>
+                {/* Right Column: Maîtres du Jeu + Paramètre de Jeu */}
+                <div className="flex flex-col space-y-4">
+                    {/* Maîtres du Jeu (still using radio buttons) */}
+                    <div className="rounded-2xl border-2 border-gray-200 p-4">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center mb-4 space-x-2">
+                                <h2 className="text-xl font-semibold">Maîtres du Jeu</h2>
+                                <span role="img" aria-label="Game Master" className="text-2xl">
+                                    <img
+                                        src="/assets/img/mvp.png"
+                                        alt="Return"
+                                        className="w-7 h-7"
+                                    />
+                                </span>
+                            </div>
+                        </div>
+                        {/* Gray line */}
+                        <hr className="border-gray-200 mb-4" />
+                        <div className="flex items-center space-x-2 mb-2">
+                            {teamAdmin.map((user, index) => (
+                                <div key={index} className="flex items-center space-x-2 mb-2">
+                                    <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="profile" className="w-6 h-6 rounded-full bg-gray-300 border" />
+                                    <span>{user}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    {/* Spectateurs */}
+                    <div className="rounded-2xl border-2 border-gray-200 p-4">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center space-x-2">
+                                <h2 className="text-xl font-semibold">Spectateurs</h2>
+                                <span role="img" aria-label="Spectator" className="text-2xl">🔍</span>
+                            </div>
+                        </div>
+                        {/* Gray line */}
+                        <hr className="border-gray-200 mb-4" />
+                        <div className="flex items-center space-x-2 mb-2">
+                            {teamSpectator.map((user, index) => (
+                                <div key={index} className="flex items-center space-x-2 mb-2">
+                                    <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="profile" className="w-6 h-6 rounded-full bg-gray-300 border" />
+                                    <span>{user}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    {/* Paramètre de Jeu */}
+                    <div className="rounded-2xl border-2 border-gray-200 p-4">
+                        <div className="flex items-center mb-4 space-x-2">
+                            <h2 className="text-xl font-semibold">Paramètre de Jeu</h2>
+                            <img
+                                src="/assets/img/setting.png"
+                                alt="Settings"
+                                className="w-7 h-7"
+                            />
+                        </div>
                         {/* Gray line */}
                         <hr className="border-gray-200 mb-4" />
 
@@ -699,83 +587,8 @@ export default function Page() {
                             </div>
                         </div>
                     </div>
-                  </div>
-
-                  {/* Buttons container */}
-                  <div className="flex justify-between mt-4 ">
-                    {/* Play button */}
-                    <button
-                      type="button"
-                      className="text-green-500 hover:text-green-700 flex items-center cursor-pointer"
-                      onClick={handleStartGame}
-                    >
-                      <span className="mr-2">Lancer la partie</span>
-                      <Image
-                        src="/assets/img/play.png"
-                        alt="Lancer la partie"
-                        width={32}
-                        height={32}
-                        className="w-6 h-6"
-                      />
-                    </button>
-
-                    {/* Delete button */}
-
-                    <button
-                      type="button"
-                      className="text-red-500 hover:text-red-700 flex items-center cursor-pointer"
-                      onClick={async () => {
-                        try {
-                          const response = await fetch(`/api/deleteRoom`, {
-                            method: "POST",
-                            headers: {
-                              "Content-Type": "application/json",
-                            },
-                            body: JSON.stringify({ id: connectionId }),
-                          });
-
-                          if (!response.ok) {
-                            const errorData = await response.json();
-                            console.error("Erreur API :", errorData);
-                            throw new Error(
-                              errorData.message ||
-                              "Échec de la suppression de la salle"
-                            );
-                          }
-
-                          showToastMessage(
-                            "Partie supprimée avec succès !",
-                            "success"
-                          );
-                          router.push("/");
-                        } catch (error) {
-                          console.error(
-                            "Erreur lors de la suppression de la salle :",
-                            error
-                          );
-                          showToastMessage(
-                            "Une erreur s'est produite lors de la suppression de la partie.",
-                            "error"
-                          );
-                        }
-                      }}
-                    >
-                      <span className="mr-2">Supprimer la partie</span>
-                      <Image
-                        src="/assets/img/trash.png"
-                        alt="Supprimer la partie"
-                        width={32}
-                        height={32}
-                        className="w-6 h-6 "
-                      />
-                    </button>
-                  </div>
                 </div>
-              </div>
             </div>
-          </div>
         </div>
-      </div>
-    </div>
-  );
+    );
 }
