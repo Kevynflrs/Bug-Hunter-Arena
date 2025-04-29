@@ -12,76 +12,61 @@ const socket = getSocket();
 const UUID_EXPIRATION_TIME = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 export default function Page() {
-    interface IRoom extends Document {
-        scores_a: number;
-        scores_b: number;
-        name: string;
-        connectionId: number;
-    }
+  interface IRoom extends Document {
+    scores_a: number;
+    scores_b: number;
+    name: string;
+    connectionId: number;
+  }
 
-    const [room, setRoom] = useState<IRoom | null>(null);
-    const searchParams = useSearchParams();
-    const connectionId = searchParams.get("id");
-    const nickname = searchParams.get("nickname");
-    const router = useRouter();
-    const [name, setName] = useState<string>(nickname || ""); // Initialize with an empty string or a default value
+  const [room, setRoom] = useState<IRoom | null>(null);
+  const searchParams = useSearchParams();
+  const connectionId = searchParams.get("id");
+  const nickname = searchParams.get("nickname");
+  const router = useRouter();
+  const [name, setName] = useState<string>(nickname || ""); // Initialize with an empty string or a default value
 
-    const [teamRed, setTeamRed] = useState<string[]>([]);
-    const [teamBlue, setTeamBlue] = useState<string[]>([]);
-    const [teamSpectator, setTeamSpectator] = useState<string[]>([]);
-    const [teamAdmin, setTeamAdmin] = useState<string[]>([]);
-    const [error, setError] = useState<string | null>(null);
-    const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
-    const [difficulte, setDifficulte] = useState<number | null>(null);
-    const [duree, setDuree] = useState<number>(260);
+  const [error, setError] = useState<string | null>(null);
 
-    const goHome = () => {
-        redirect("/");
-    };
+  const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
+  const [difficulte, setDifficulte] = useState<number>(1);
+  const [duree, setDuree] = useState<number>(260);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastType, setToastType] = useState<"success" | "error" | "info">(
+    "info"
+  );
 
-    const handleLanguageToggle = (lang: string) => {
-        setSelectedLanguages(prev => 
-            prev.includes(lang) 
-                ? prev.filter(l => l !== lang)
-                : [...prev, lang]
-        );
-    };
+  const [teamRed, setTeamRed] = useState<string[]>([]);
+  const [teamBlue, setTeamBlue] = useState<string[]>([]);
+  const [teamSpectator, setTeamSpectator] = useState<string[]>([]);
+  const [teamAdmin, setTeamAdmin] = useState<string[]>([]);
 
-    const handleStartGame = () => {
-        if (selectedLanguages.length === 0) {
-            setError("Veuillez sélectionner au moins un langage");
-            return;
-        }
-        
-        const gameSettings = {
-            languages: selectedLanguages.join(','),
-            duration: duree.toString(),
-            difficulty: difficulte?.toString(),
-        };
+  const showToastMessage = (
+    message: string,
+    type: "success" | "error" | "info"
+  ) => {
+    setToastMessage(message);
+    setToastType(type);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000); // Cache le toast après 3 secondes
+  };
 
-        // Émettre l'événement start_game à tous les joueurs
-        socket.emit('start_game', connectionId, gameSettings);
-        
-        // Rediriger le maître du jeu vers la page de jeu
-        const queryParams = new URLSearchParams({
-            languages: selectedLanguages.join(','),
-            id: connectionId || '',
-            duration: duree.toString(),
-            ...(difficulte && { difficulty: difficulte.toString() })
-        }).toString();
-        
-        router.push(`/in-game?${queryParams}`);
-    };
 
-    function getLanguages() {
-        return [
-            { id: "js", label: "JavaScript" },
-            { id: "Cpp", label: "C++" },
-            { id: "Mobile", label: "Mobile" },
-            { id: "Csharp", label: "C#" },
-            { id: "PHP", label: "PHP" },
-        ];
+  const goHome = () => {
+    redirect("/");
+  };
 
+  const handleLanguageToggle = (lang: string) => {
+    setSelectedLanguages((prev) =>
+      prev.includes(lang) ? prev.filter((l) => l !== lang) : [...prev, lang]
+    );
+  };
+
+  const handleStartGame = () => {
+    if (selectedLanguages.length === 0) {
+      setError("Veuillez sélectionner au moins un langage");
+      return;
     }
 
     const queryParams = new URLSearchParams({
@@ -553,151 +538,83 @@ export default function Page() {
                 className="w-7 h-7"
               />
             </div>
-                        {/* Gray line */}
-                        <hr className="border-gray-200 mb-4" />
+            {/* Gray line */}
+            <hr className="border-gray-200 mb-4" />
 
-                        {/* Conteneur avec espacement uniforme */}
-                        <div className="space-y-4">
-                            {/* Durée des manches */}
-                            <div className="flex items-center space-x-4">
-                                <label htmlFor="duree" className="font-medium">
-                                    Durée des manches (en Secondes)
-                                </label>
-                                <input
-                                    id="duree"
-                                    type="number"
-                                    value={duree}
-                                    onChange={(e) => setDuree(Number(e.target.value))}
-                                    className="border border-gray-300 rounded-lg px-3 py-1 w-32"
-                                />
-                            </div>
+            {/* Conteneur avec espacement uniforme */}
+            <div className="space-y-4">
+              {/* Durée des manches */}
+              <div className="flex items-center space-x-4">
+                <label htmlFor="duree" className="font-medium">
+                  Durée des manches (en Secondes)
+                </label>
+                <input
+                  id="duree"
+                  type="number"
+                  defaultValue={260}
+                  className="border border-gray-300 rounded-lg px-3 py-1 w-32"
+                />
+              </div>
 
-                            {/* Difficulté */}
-                            <div className="mb-4 flex items-center space-x-4">
-                                <p className="font-medium">Difficulté</p>
-                                <div className="flex items-center space-x-2">
-                                    {["1", "2", "3", "all"].map((level) => (
-                                        <label
-                                            key={level}
-                                            className={`flex items-center justify-center w-10 h-10 border ${
-                                                String(difficulte) === level || (difficulte === null && level === "all")
-                                                    ? "bg-blue-500 text-white"
-                                                    : "border-gray-300"
-                                            } rounded-lg cursor-pointer text-md font-semibold hover:bg-blue-100`}
-                                        >
-                                            <input
-                                                type="radio"
-                                                name="difficulty"
-                                                value={level}
-                                                checked={String(difficulte) === level || (difficulte === null && level === "all")}
-                                                onChange={(e) => {
-                                                    if (e.target.value === "all") {
-                                                        setDifficulte(null);
-                                                    } else {
-                                                        setDifficulte(Number(e.target.value));
-                                                    }
-                                                }}
-                                                className="hidden"
-                                            />
-                                            {level === "all" ? "Tout" : level}
-                                        </label>
-                                    ))}
-                                </div>
-                            </div>
+              {/* Difficulté */}
+              <div className="mb-4 flex items-center space-x-4">
+                <p className="font-medium">Difficulté</p>
+                <div className="flex items-center space-x-2">
+                  {["1", "2", "3"].map((level) => (
+                    <label
+                      key={level}
+                      className="flex items-center justify-center w-10 h-10 border border-gray-300 rounded-lg cursor-pointer text-md font-semibold"
+                    >
+                      <input
+                        type="radio"
+                        name="difficulty"
+                        className="hidden"
+                        onChange={(e) => {
+                          e.target.parentElement?.classList.add("bg-gray-300");
+                          document
+                            .querySelectorAll('input[name="difficulty"]')
+                            .forEach((input) => {
+                              if (input !== e.target) {
+                                input.parentElement?.classList.remove(
+                                  "bg-gray-300"
+                                );
+                              }
+                            });
+                        }}
+                      />
+                      {level}
+                    </label>
+                  ))}
+                </div>
+              </div>
 
-                            {/* Right Column: Maîtres du Jeu + Paramètre de Jeu */}
-                            <div className="flex flex-col space-y-4">
-                                <div className="rounded-2xl border-2 border-gray-200 p-4">
-                                    {/* Langages */}
-                                    <div>
-                                        <p className="font-medium mb-2">Langages :</p>
-                                        <div className="grid grid-cols-3 gap-4">
-                                            {getLanguages().map((lang) => (
-                                                
-                                                <div key={lang.id} className="flex items-center space-x-3 p-1">
-                                                     <label htmlFor={lang.id} className="flex items-center cursor-pointer">
-                                                         <input
-                                                             type="checkbox"
-                                                             id={lang.id}
-                                                             checked={selectedLanguages.includes(lang.id)}
-                                                             onChange={() => handleLanguageToggle(lang.id)}
-                                                             className="w-5 h-5 cursor-pointer"
-                                                         />
-                                                         <span className="ml-2">{lang.label}</span>
-                                                    </label>
-                                                
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {/* Buttons container */}
-                                    <div className="flex justify-between mt-4 ">
-                                        {/* Play button */}
-                                        <button
-                                            type="button"
-                                            className="text-green-500 hover:text-green-700 flex items-center"
-                                            onClick={handleStartGame}
-                                        >
-                                            <span className="mr-2">Lancer la partie</span>
-                                            <img
-                                                src="/assets/img/play.png"
-                                                alt="Lancer la partie"
-                                                className="w-6 h-6"
-                                            />
-                                        </button>
-
-                                        {/* Delete button */}
-                                        <button
-                                            type="button"
-                                            className="text-red-500 hover:text-red-700 flex items-center cursor-pointer"
-                                            onClick={async () => {
-                                                if (
-                                                    confirm("Êtes-vous sûr de vouloir supprimer cette partie ?")
-                                                ) {
-                                                    try {
-                                                        const response = await fetch(`/api/deleteRoom`, {
-                                                            method: "POST",
-                                                            headers: {
-                                                                "Content-Type": "application/json",
-                                                            },
-                                                            body: JSON.stringify({ id: connectionId }),
-                                                        });
-
-                                                        if (!response.ok) {
-                                                            const errorData = await response.json();
-                                                            console.error("Erreur API :", errorData);
-                                                            throw new Error(
-                                                                errorData.message ||
-                                                                "Échec de la suppression de la salle"
-                                                            );
-                                                        }
-
-                                                        alert("Partie supprimée avec succès !");
-                                                        router.push("/");
-                                                    } catch (error) {
-                                                        console.error(
-                                                            "Erreur lors de la suppression de la salle :",
-                                                            error
-                                                        );
-                                                        alert(
-                                                            "Une erreur s'est produite lors de la suppression de la partie."
-                                                        );
-                                                    }
-                                                }
-                                            }}
-                                        >
-                                            <span className="mr-2">Supprimer la partie</span>
-                                            <img
-                                                src="/assets/img/trash.png"
-                                                alt="Supprimer la partie"
-                                                className="w-6 h-6 "
-                                            />
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
+              {/* Right Column: Maîtres du Jeu + Paramètre de Jeu */}
+              <div className="flex flex-col space-y-4">
+                <div className="rounded-2xl border-2 border-gray-200 p-4">
+                  {/* Langages */}
+                  <div>
+                    <p className="font-medium mb-2">Langages :</p>
+                    <div className="grid grid-cols-3 gap-4">
+                      {getLanguages().map((lang) => (
+                        <div
+                          key={lang.id}
+                          className="flex items-center space-x-3 p-1"
+                        >
+                          <label
+                            htmlFor={lang.id}
+                            className="flex items-center cursor-pointer"
+                          >
+                            <input
+                              type="checkbox"
+                              id={lang.id}
+                              checked={selectedLanguages.includes(lang.id)}
+                              onChange={() => handleLanguageToggle(lang.id)}
+                              className="w-5 h-5 cursor-pointer"
+                            />
+                            <span className="ml-2">{lang.label}</span>
+                          </label>
                         </div>
+                      ))}
                     </div>
                   </div>
 
