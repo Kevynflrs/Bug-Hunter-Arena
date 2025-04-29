@@ -220,84 +220,40 @@ export default function Page() {
                 socket.on("room_joined", (playersInRoom) => {
                     console.log("Room joined successfully:", playersInRoom);
 
+                    // Réinitialiser toutes les équipes
+                    setTeamRed([]);
+                    setTeamBlue([]);
+                    setTeamSpectator([]);
+                    setTeamAdmin([]);
+
                     interface Player {
                         name: string;
-                        team: 'spectator' | 'red' | 'blue' | 'admin';
+                        team: string;
                     }
 
+                    // Utiliser un Set pour garder une trace des utilisateurs déjà ajoutés
+                    const addedUsers = new Set();
+
                     playersInRoom.forEach((user: Player) => {
-                        console.log("User in room:", user);
-
-                        if (user.team === "spectator") {
-                            setTeamSpectator((prevSpectators) => {
-                                if (!prevSpectators.includes(user.name)) {
-                                    setTeamRed((prevRed) =>
-                                        prevRed.filter((member) => member !== user.name)
-                                    );
-                                    setTeamBlue((prevBlue) =>
-                                        prevBlue.filter((member) => member !== user.name)
-                                    );
-                                    setTeamAdmin((prevAdmin) =>
-                                        prevAdmin.filter((member) => member !== user.name)
-                                    );
-                                    return [...prevSpectators, user.name];
-                                }
-                                return prevSpectators;
-                            });
+                        if (addedUsers.has(user.name)) {
+                            return; // Ignorer les utilisateurs en double
                         }
 
-                        if (user.team === "red") {
-                            setTeamRed((prevRed) => {
-                                if (!prevRed.includes(user.name)) {
-                                    setTeamSpectator((prevRed) =>
-                                        prevRed.filter((member) => member !== user.name)
-                                    );
-                                    setTeamBlue((prevBlue) =>
-                                        prevBlue.filter((member) => member !== user.name)
-                                    );
-                                    setTeamAdmin((prevAdmin) =>
-                                        prevAdmin.filter((member) => member !== user.name)
-                                    );
-                                    return [...prevRed, user.name];
-                                }
-                                return prevRed;
-                            });
-                        }
+                        addedUsers.add(user.name);
 
-                        if (user.team === "blue") {
-                            setTeamBlue((prevBlue) => {
-                                if (!prevBlue.includes(user.name)) {
-                                    setTeamSpectator((prevRed) =>
-                                        prevRed.filter((member) => member !== user.name)
-                                    );
-                                    setTeamRed((prevBlue) =>
-                                        prevBlue.filter((member) => member !== user.name)
-                                    );
-                                    setTeamAdmin((prevAdmin) =>
-                                        prevAdmin.filter((member) => member !== user.name)
-                                    );
-                                    return [...prevBlue, user.name];
-                                }
-                                return prevBlue;
-                            });
-                        }
-
-                        if (user.team === "admin") {
-                            setTeamAdmin((prevAdmin) => {
-                                if (!prevAdmin.includes(user.name)) {
-                                    setTeamSpectator((prevRed) =>
-                                        prevRed.filter((member) => member !== user.name)
-                                    );
-                                    setTeamRed((prevBlue) =>
-                                        prevBlue.filter((member) => member !== user.name)
-                                    );
-                                    setTeamBlue((prevAdmin) =>
-                                        prevAdmin.filter((member) => member !== user.name)
-                                    );
-                                    return [...prevAdmin, user.name];
-                                }
-                                return prevAdmin;
-                            });
+                        switch (user.team) {
+                            case "spectator":
+                                setTeamSpectator(prev => [...prev, user.name]);
+                                break;
+                            case "red":
+                                setTeamRed(prev => [...prev, user.name]);
+                                break;
+                            case "blue":
+                                setTeamBlue(prev => [...prev, user.name]);
+                                break;
+                            case "admin":
+                                setTeamAdmin(prev => [...prev, user.name]);
+                                break;
                         }
                     });
                 });

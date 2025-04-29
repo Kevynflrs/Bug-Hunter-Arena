@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface ReponsesProps {
   correction: string;
@@ -17,6 +17,15 @@ const Reponses = ({ correction, explication, onAnswerSubmit, teamColors, isDisab
   const [userAnswer, setUserAnswer] = useState('');
   const [showCorrection, setShowCorrection] = useState(false);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
+
+  // Réinitialiser quand isDisabled change (nouvelle question)
+  useEffect(() => {
+    if (!isDisabled) {
+      setUserAnswer('');
+      setShowCorrection(false);
+      setIsCorrect(null);
+    }
+  }, [isDisabled]);
 
   const handleSubmit = () => {
     const correct = userAnswer.trim().toLowerCase() === correction.trim().toLowerCase();

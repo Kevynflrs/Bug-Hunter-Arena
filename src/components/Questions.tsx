@@ -8,7 +8,7 @@ const socket = getSocket();
 
 interface QuestionProps {
   onQuestionChange?: (question: QuestionData) => void;
-  team: 'red' | 'blue' | 'creator';
+  team: 'red' | 'blue' | 'admin';
   duration?: number;
   difficulty?: string;
 }
@@ -41,15 +41,69 @@ const Question = forwardRef(({ onQuestionChange, team = 'blue', duration = 260, 
     }
   };
 
-  const colors = teamThemes[team];
+  const colors = teamThemes[team as keyof typeof teamThemes] || teamThemes.blue;
+
+  useEffect(() => {
+    fetchNewQuestion();
+  }, []);
+
+  // Timer effect
+  useEffect(() => {
+    if (!question) return;
+
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => {
+        const newTime = prev - 1;
+        
+        if (newTime <= 0) {
+          if (team === 'creator') {
+            fetchNewQuestion();
+          }
+          return duration;
+        }
+
+        // Si c'est le créateur, synchroniser le timer avec les autres joueurs
+        if (team === 'creator') {
+          const params = new URLSearchParams(window.location.search);
+          const connectionId = params.get('id');
+          socket.emit('sync_timer', { 
+            roomId: connectionId, 
+            timeLeft: newTime 
+          });
+        }
+
+        return newTime;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [question, team, duration]);
+
+  // Écouter les changements de question et de timer
+  useEffect(() => {
+    socket.on('change_question', (data) => {
+      console.log("Nouvelle question reçue:", data);
+      setQuestion(data.settings);
+      setTimeLeft(duration);
+      setHasSubmitted(false);
+    });
+
+    socket.on('sync_timer', (timeLeft) => {
+      setTimeLeft(timeLeft);
+    });
+
+    return () => {
+      socket.off('change_question');
+      socket.off('sync_timer');
+    };
+  }, [duration]);
 
   const handleAnswerSubmit = (isCorrect: boolean) => {
     setHasSubmitted(true);
     const params = new URLSearchParams(window.location.search);
     const connectionId = params.get('id');
-
+    
     if (isCorrect) {
-      // Émettre l'événement de réponse correcte avec l'équipe
       socket.emit('correct_answer', {
         roomId: connectionId,
         team: team
@@ -81,14 +135,10 @@ const Question = forwardRef(({ onQuestionChange, team = 'blue', duration = 260, 
       setQuestion(data.question);
       setTimeLeft(duration);
 
-      // Si c'est le maître du jeu, émettre l'événement pour tous les joueurs
       if (team === 'creator') {
         socket.emit('change_question', {
           roomId: connectionId,
-          settings: {
-            question: data.question,
-            timeLeft: duration
-          }
+          settings: data.question
         });
       }
     } catch (error) {
@@ -99,43 +149,6 @@ const Question = forwardRef(({ onQuestionChange, team = 'blue', duration = 260, 
     }
   };
 
-  // Écouter les changements de question
-  useEffect(() => {
-    socket.on('question_changed', (data) => {
-      setQuestion(data.question);
-      setTimeLeft(data.timeLeft);
-      setHasSubmitted(false);
-    });
-
-    return () => {
-      socket.off('question_changed');
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!question) {
-      fetchNewQuestion();
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!question) return;
-
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          if (team === 'creator') {
-            fetchNewQuestion();
-          }
-          return duration;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [question, duration, team]);
-
   if (isLoading) return <div className={colors.text}>Chargement...</div>;
   if (error) return <div className="text-red-500">{error}</div>;
   if (!question) return null;
@@ -145,41 +158,39 @@ const Question = forwardRef(({ onQuestionChange, team = 'blue', duration = 260, 
       <div className={`p-6 bg-white rounded-lg shadow-md mb-6 border ${colors.border}`}>
         <div className="flex justify-between items-center mb-4">
           <div>
-            <h2 className="text-lg font-bold text-gray-800">Thème : {question?.theme}</h2>
+            <h2 className="text-lg font-bold text-gray-800">
+              {question?.theme ? `Thème : ${question.theme}` : ''}
+            </h2>
             <p className="text-sm text-gray-600">
-              Niveau : {question?.niveau}
+              {question?.niveau ? `Niveau : ${question.niveau}` : ''}
               <span className="ml-4">Temps restant : {timeLeft}s</span>
             </p>
           </div>
           {team === 'creator' && (
             <button
-              onClick={() => fetchNewQuestion()}
+              onClick={fetchNewQuestion}
               className={`px-4 py-2 rounded text-white ${colors.button}`}
             >
               Question suivante
             </button>
           )}
         </div>
-        {question && (
-          <>
-            <pre className="bg-gray-100 p-4 rounded-md text-sm text-gray-800 font-mono whitespace-pre-wrap">
-              {question.question}
-            </pre>
-            {team === 'creator' && (
-              <div className={`mt-4 p-4 rounded border ${colors.bg} ${colors.border}`}>
-                <div className="space-y-4">
-                  <div>
-                    <p className="font-bold mb-2">Correction :</p>
-                    <pre className="bg-white p-2 rounded">{question.correction}</pre>
-                  </div>
-                  <div>
-                    <p className="font-bold mb-2">Explication :</p>
-                    <pre className="bg-white p-2 rounded whitespace-pre-wrap">{question.explication}</pre>
-                  </div>
-                </div>
+        <pre className="bg-gray-100 p-4 rounded-md text-sm text-gray-800 font-mono whitespace-pre-wrap">
+          {question.question}
+        </pre>
+        {team === 'creator' && (
+          <div className="mt-4 p-4 rounded border">
+            <div className="space-y-4">
+              <div>
+                <p className="font-bold mb-2">Correction :</p>
+                <pre className="bg-white p-2 rounded">{question.correction}</pre>
               </div>
-            )}
-          </>
+              <div>
+                <p className="font-bold mb-2">Explication :</p>
+                <pre className="bg-white p-2 rounded whitespace-pre-wrap">{question.explication}</pre>
+              </div>
+            </div>
+          </div>
         )}
       </div>
 

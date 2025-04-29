@@ -27,7 +27,92 @@ export default function InGamePage() {
     creator: [] as { name: string }[]
   });
 
-  // Surveiller les scores
+  const handleReturnToRoom = () => {
+    const connectionId = searchParams.get('id');
+    const storedTeam = localStorage.getItem('team');
+    
+    if (storedTeam === 'admin') {  // Changement ici de 'creator' à 'admin'
+      router.push(`/room?id=${connectionId}&nickname=${localStorage.getItem('name')}`);
+    } else {
+      router.push(`/waitingroom?id=${connectionId}&nickname=${localStorage.getItem('name')}`);
+    }
+  };
+
+  useEffect(() => {
+    if (socket) {
+      if (!socket.connected) {
+        socket.connect();
+      }
+
+      const connectionId = searchParams.get('id');
+      const name = localStorage.getItem('name');
+      const sessionID = localStorage.getItem('sessionID');
+      const storedTeam = localStorage.getItem('team');
+
+      if (connectionId && name && sessionID && storedTeam) {
+        socket.emit('join_room', connectionId, name, sessionID, storedTeam);
+        setUserTeam(storedTeam === 'admin' ? 'creator' : storedTeam as 'red' | 'blue' | 'creator');
+
+        socket.on('user_joined', (data) => {
+          setTeams(prev => {
+            const team = data.team === 'admin' ? 'creator' : data.team;
+            if (team && prev[team] && !prev[team].some(p => p.name === data.name)) {
+              return {
+                ...prev,
+                [team]: [...prev[team], { name: data.name }]
+              };
+            }
+            return prev;
+          });
+        });
+
+        socket.on('room_joined', (playersInRoom) => {
+          const uniquePlayers = new Map();
+          
+          playersInRoom.forEach((player: { name: string; team: string }) => {
+            uniquePlayers.set(player.name, player.team);
+          });
+
+          const newTeams = {
+            blue: [] as { name: string }[],
+            red: [] as { name: string }[],
+            creator: [] as { name: string }[]
+          };
+
+          uniquePlayers.forEach((team, name) => {
+            if (team === 'red') {
+              newTeams.red.push({ name });
+            } else if (team === 'blue') {
+              newTeams.blue.push({ name });
+            } else if (team === 'admin') {
+              newTeams.creator.push({ name });
+            }
+          });
+
+          setTeams(newTeams);
+        });
+      }
+
+      return () => {
+        socket.off('room_joined');
+        socket.off('user_joined');
+      };
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    socket.on('update_score', ({ team }) => {
+      setTeamScores(prev => ({
+        ...prev,
+        [team]: prev[team] + 1
+      }));
+    });
+
+    return () => {
+      socket.off('update_score');
+    };
+  }, []);
+
   useEffect(() => {
     if (teamScores.blue >= 5) {
       setWinningTeam('blue');
@@ -37,69 +122,6 @@ export default function InGamePage() {
       setShowVictoryPopup(true);
     }
   }, [teamScores]);
-
-  const handleReturnToRoom = () => {
-    const connectionId = searchParams.get('id');
-    router.push(`/room?id=${connectionId}`);
-  };
-
-  useEffect(() => {
-    if (socket) {
-      if (!socket.connected) {
-        socket.connect();
-      }
-
-      // Récupérer l'ID de la room depuis l'URL
-      const connectionId = searchParams.get('id');
-      const name = localStorage.getItem('name');
-      const sessionID = localStorage.getItem('sessionID');
-      const storedTeam = localStorage.getItem('team');
-
-      if (connectionId && name && sessionID && storedTeam) {
-        socket.emit('join_room', connectionId, name, sessionID, storedTeam);
-        // Mettre à jour userTeam en fonction de l'équipe stockée
-        setUserTeam(storedTeam === 'admin' ? 'creator' : storedTeam as 'red' | 'blue' | 'creator');
-      }
-
-      socket.on('room_joined', (playersInRoom) => {
-        const newTeams = {
-          blue: [] as { name: string }[],
-          red: [] as { name: string }[],
-          creator: [] as { name: string }[]
-        };
-
-        playersInRoom.forEach((player: { name: string; team: string }) => {
-          if (player.team === 'red' || player.team === 'blue' || player.team === 'admin') {
-            newTeams[player.team === 'admin' ? 'creator' : player.team].push({
-              name: player.name
-            });
-          }
-        });
-
-        setTeams(newTeams);
-      });
-
-      socket.on('user_joined', (user) => {
-        setTeams(prev => {
-          const team = user.team === 'admin' ? 'creator' : user.team;
-          if (team === 'red' || team === 'blue' || team === 'creator') {
-            return {
-              ...prev,
-              [team]: [...prev[team], { name: user.name, role: user.role || 'Non assigné' }]
-            };
-          }
-          return prev;
-        });
-      });
-
-      return () => {
-        if (socket) {
-          socket.off('room_joined');
-          socket.off('user_joined');
-        }
-      };
-    }
-  }, [searchParams]);
 
   return (
     <div className="min-h-screen flex relative">
