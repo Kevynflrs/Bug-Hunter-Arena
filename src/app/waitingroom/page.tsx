@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import Toast from "@/components/Toast";
+import { useRouter } from "next/navigation";
+
 
 import { getSocket } from "@/socket";
 
@@ -23,7 +25,8 @@ export default function Page() {
   const searchParams = useSearchParams();
   const connectionId = searchParams.get("id");
   const nickname = searchParams.get("nickname");
-  const [name, setName] = useState<string>(nickname || "");
+  const router = useRouter();
+  const [name, setName] = useState<string>(nickname || ""); // Initialize with an empty string or a default value
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [toastType, setToastType] = useState<"error" | "success" | "info">(
@@ -70,7 +73,7 @@ export default function Page() {
   };
 
   useEffect(() => {
-    let isMounted = true; // Track if the component is mounted
+    let isMounted = true;
 
     const initializeSocket = () => {
       if (!socket.connected) {
@@ -122,6 +125,7 @@ export default function Page() {
         });
 
         socket.on("user_joined", (user) => {
+
           if (user.team === "spectator") {
             setTeamSpectator((prevSpectators) => {
               if (!prevSpectators.includes(user.name)) {
@@ -283,6 +287,15 @@ export default function Page() {
             }
           });
         });
+
+        socket.on('game_starting', (settings) => {
+          const queryParams = new URLSearchParams({
+            ...settings,
+            id: connectionId || '',
+          }).toString();
+  
+          router.push(`/in-game?${queryParams}`);
+        });
       }
     };
 
@@ -315,10 +328,11 @@ export default function Page() {
         socket.off("assign_uuid");
         socket.off("user_joined");
         socket.off("room_joined");
+        socket.off("game_starting"); // N'oubliez pas de nettoyer le listener
         socket.disconnect(); // Explicitly disconnect the socket
       }
     };
-  }, [connectionId, name]);
+  }, [connectionId, name, router]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4">
