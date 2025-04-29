@@ -1,26 +1,24 @@
 "use client"; // If using the Next.js App Router
-import React, { useEffect, useState } from "react";
+import React, { Suspense, useState, useEffect } from "react";
 import { redirect } from "next/navigation";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import Toast from "@/components/Toast";
 import { useRouter } from "next/navigation";
-
 import { getSocket } from "@/socket";
 
 const socket = getSocket();
-
 const UUID_EXPIRATION_TIME = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 export default function Page() {
-  interface IRoom extends Document {
-    scores_a: number;
-    scores_b: number;
-    name: string;
-    connectionId: number;
-  }
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <WaitingRoom />
+    </Suspense>
+  );
+}
 
-  const [room, setRoom] = useState<IRoom | null>(null);
+function WaitingRoom() {
   const searchParams = useSearchParams();
   const connectionId = searchParams.get("id");
   const nickname = searchParams.get("nickname");
@@ -35,7 +33,6 @@ export default function Page() {
   const [teamRed, setTeamRed] = useState<string[]>([]);
   const [teamBlue, setTeamBlue] = useState<string[]>([]);
   const [teamSpectator, setTeamSpectator] = useState<string[]>([]);
-  const [teamAdmin, setTeamAdmin] = useState<string[]>([]);
 
 
   const goHome = () => {
@@ -69,7 +66,6 @@ export default function Page() {
   };
 
   useEffect(() => {
-    let isMounted = true;
 
     const initializeSocket = () => {
       if (!socket.connected) {
@@ -134,9 +130,6 @@ export default function Page() {
                 setTeamBlue((prevBlue) =>
                   prevBlue.filter((member) => member !== user.name)
                 );
-                setTeamAdmin((prevAdmin) =>
-                  prevAdmin.filter((member) => member !== user.name)
-                );
                 return [...prevSpectators, user.name];
               }
               return prevSpectators;
@@ -152,9 +145,6 @@ export default function Page() {
                 setTeamBlue((prevBlue) =>
                   prevBlue.filter((member) => member !== user.name)
                 );
-                setTeamAdmin((prevAdmin) =>
-                  prevAdmin.filter((member) => member !== user.name)
-                );
                 return [...prevRed, user.name];
               }
               return prevRed;
@@ -169,32 +159,12 @@ export default function Page() {
                 setTeamRed((prevBlue) =>
                   prevBlue.filter((member) => member !== user.name)
                 );
-                setTeamAdmin((prevAdmin) =>
-                  prevAdmin.filter((member) => member !== user.name)
-                );
                 
                 return [...prevBlue, user.name];
               }
               return prevBlue;
             });
-          }
-          if (user.team === "admin") {
-            setTeamAdmin((prevAdmin) => {
-              if (!prevAdmin.includes(user.name)) {
-                setTeamSpectator((prevRed) =>
-                  prevRed.filter((member) => member !== user.name)
-                );
-                setTeamRed((prevBlue) =>
-                  prevBlue.filter((member) => member !== user.name)
-                );
-                setTeamBlue((prevAdmin) =>
-                  prevAdmin.filter((member) => member !== user.name)
-                );
 
-                return [...prevAdmin, user.name];
-              }
-              return prevAdmin;
-            });
           }
 
 
@@ -222,9 +192,6 @@ export default function Page() {
                   setTeamBlue((prevBlue) =>
                     prevBlue.filter((member) => member !== user.name)
                   );
-                  setTeamAdmin((prevAdmin) =>
-                    prevAdmin.filter((member) => member !== user.name)
-                  );
                   return [...prevSpectators, user.name];
                 }
                 return prevSpectators;
@@ -239,9 +206,6 @@ export default function Page() {
                   );
                   setTeamBlue((prevBlue) =>
                     prevBlue.filter((member) => member !== user.name)
-                  );
-                  setTeamAdmin((prevAdmin) =>
-                    prevAdmin.filter((member) => member !== user.name)
                   );
                   return [...prevRed, user.name];
                 }
@@ -258,30 +222,9 @@ export default function Page() {
                   setTeamRed((prevBlue) =>
                     prevBlue.filter((member) => member !== user.name)
                   );
-                  setTeamAdmin((prevAdmin) =>
-                    prevAdmin.filter((member) => member !== user.name)
-                  );
                   return [...prevBlue, user.name];
                 }
                 return prevBlue;
-              });
-            }
-
-            if (user.team === "admin") {
-              setTeamAdmin((prevAdmin) => {
-                if (!prevAdmin.includes(user.name)) {
-                  setTeamSpectator((prevRed) =>
-                    prevRed.filter((member) => member !== user.name)
-                  );
-                  setTeamRed((prevBlue) =>
-                    prevBlue.filter((member) => member !== user.name)
-                  );
-                  setTeamBlue((prevAdmin) =>
-                    prevAdmin.filter((member) => member !== user.name)
-                  );
-                  return [...prevAdmin, user.name];
-                }
-                return prevAdmin;
               });
             }
           });
@@ -304,8 +247,6 @@ export default function Page() {
         if (!response.ok) {
           throw new Error("Failed to fetch room data");
         }
-        const data = await response.json();
-        if (isMounted) setRoom(data); // Only update state if mounted
       } catch (error) {
         console.error("Error fetching room:", error);
       }
@@ -315,7 +256,6 @@ export default function Page() {
     initializeSocket();
 
     return () => {
-      isMounted = false; // Mark as unmounted
       console.log("Cleaning up socket connection...");
       if (socket) {
         socket.off("connect");

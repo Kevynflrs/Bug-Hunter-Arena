@@ -1,5 +1,5 @@
 "use client"; // If using the Next.js App Router
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import { redirect } from "next/navigation";
 import Image from "next/image";
 
@@ -13,6 +13,14 @@ const socket = getSocket();
 const UUID_EXPIRATION_TIME = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 export default function Page() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <RoomComponent />
+        </Suspense>
+    );
+}
+
+function RoomComponent() {
     interface IRoom extends Document {
         scores_a: number;
         scores_b: number;

@@ -1,37 +1,29 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Question from '@/components/Questions';
 import { getSocket } from "@/socket";
 
 const socket = getSocket();
 
-export default function InGamePage() {
+function InGameContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const questionRef = useRef(null);
-  const [currentQuestion, setCurrentQuestion] = useState(null);
   const [userTeam, setUserTeam] = useState<'red' | 'blue' | 'admin'>('blue');
   const [showVictoryPopup, setShowVictoryPopup] = useState(false);
   const [winningTeam, setWinningTeam] = useState<'red' | 'blue' | null>(null);
-  
-  const [teamScores, setTeamScores] = useState({
-    blue: 0,
-    red: 0
-  });
-
+  const [teamScores, setTeamScores] = useState({ blue: 0, red: 0 });
   const [teams, setTeams] = useState({
     blue: [] as { name: string }[],
     red: [] as { name: string }[],
-    admin: [] as { name: string }[]
+    admin: [] as { name: string }[],
   });
 
   const handleReturnToRoom = () => {
     const connectionId = searchParams.get('id');
     const storedTeam = localStorage.getItem('team');
-    
-    if (storedTeam === 'admin') {  // Changement ici de 'creator' à 'admin'
+    if (storedTeam === 'admin') {
       router.push(`/room?id=${connectionId}&nickname=${localStorage.getItem('name')}`);
     } else {
       router.push(`/waitingroom?id=${connectionId}&nickname=${localStorage.getItem('name')}`);
@@ -56,12 +48,12 @@ export default function InGamePage() {
         }
 
         socket.on('user_joined', (data) => {
-          setTeams(prev => {
-            const team = data.team === 'admin';
-            if (team && prev[team] && !prev[team].some(p => p.name === data.name)) {
+          setTeams((prev) => {
+            const team = data.team;
+            if (team && (team === 'red' || team === 'blue' || team === 'admin') && !prev[team as 'red' | 'blue' | 'admin'].some((p) => p.name === data.name)) {
               return {
                 ...prev,
-                [team]: [...prev[team], { name: data.name }]
+                [team as keyof typeof teams]: [...prev[team as keyof typeof teams], { name: data.name }],
               };
             }
             return prev;
@@ -70,7 +62,6 @@ export default function InGamePage() {
 
         socket.on('room_joined', (playersInRoom) => {
           const uniquePlayers = new Map();
-          
           playersInRoom.forEach((player: { name: string; team: string }) => {
             uniquePlayers.set(player.name, player.team);
           });
@@ -78,7 +69,7 @@ export default function InGamePage() {
           const newTeams = {
             blue: [] as { name: string }[],
             red: [] as { name: string }[],
-            admin: [] as { name: string }[]
+            admin: [] as { name: string }[],
           };
 
           uniquePlayers.forEach((team, name) => {
@@ -103,10 +94,10 @@ export default function InGamePage() {
   }, [searchParams]);
 
   useEffect(() => {
-    socket.on('update_score', ({ team }) => {
-      setTeamScores(prev => ({
+    socket.on('update_score', ({ team }: { team: 'blue' | 'red' }) => {
+      setTeamScores((prev) => ({
         ...prev,
-        [team]: prev[team] + 1
+        [team]: prev[team] + 1,
       }));
     });
 
@@ -127,7 +118,7 @@ export default function InGamePage() {
 
   return (
     <div className="min-h-screen flex relative">
-      {/* Liste des joueurs équipe bleue */}
+      {/* Blue Team */}
       <div className="w-64 bg-blue-50 p-4">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-blue-600 font-bold">Équipe Bleue</h3>
@@ -140,9 +131,9 @@ export default function InGamePage() {
         ))}
       </div>
 
-      {/* Zone centrale avec la question */}
+      {/* Question Zone */}
       <div className="flex-1 flex flex-col items-center justify-center p-6">
-        <Question 
+        <Question
           team={userTeam}
           duration={Number(searchParams.get('duration')) || 260}
           difficulty={searchParams.get('difficulty') || undefined}
@@ -150,7 +141,7 @@ export default function InGamePage() {
         />
       </div>
 
-      {/* Liste des joueurs équipe rouge */}
+      {/* Red Team */}
       <div className="w-64 bg-red-50 p-4">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-red-600 font-bold">Équipe Rouge</h3>
@@ -163,15 +154,19 @@ export default function InGamePage() {
         ))}
       </div>
 
-      {/* Popup de victoire */}
+      {/* Victory Popup */}
       {showVictoryPopup && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className={`bg-white p-8 rounded-lg shadow-xl ${
-            winningTeam === 'blue' ? 'border-blue-500' : 'border-red-500'
-          } border-4`}>
-            <h2 className={`text-2xl font-bold mb-4 ${
-              winningTeam === 'blue' ? 'text-blue-500' : 'text-red-500'
-            }`}>
+          <div
+            className={`bg-white p-8 rounded-lg shadow-xl ${
+              winningTeam === 'blue' ? 'border-blue-500' : 'border-red-500'
+            } border-4`}
+          >
+            <h2
+              className={`text-2xl font-bold mb-4 ${
+                winningTeam === 'blue' ? 'text-blue-500' : 'text-red-500'
+              }`}
+            >
               L&apos;équipe {winningTeam === 'blue' ? 'Bleue' : 'Rouge'} a gagné !
             </h2>
             <button
@@ -184,5 +179,13 @@ export default function InGamePage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function InGamePage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <InGameContent />
+    </Suspense>
   );
 }

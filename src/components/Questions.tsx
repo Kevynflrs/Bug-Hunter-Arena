@@ -23,7 +23,7 @@ interface QuestionProps {
   socket: Socket; // Remplacez 'any' par le type approprié pour votre socket
 }
 
-const Question = forwardRef(({ team = 'blue', duration = 260, difficulty, socket }: QuestionProps, ref) => {
+const Question = forwardRef(({ team = 'blue', duration = 260, difficulty, socket }: QuestionProps) => {
   const [question, setQuestion] = useState<QuestionData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import mongoose from "mongoose";
 import Question from "@/models/Question";
 
 export async function GET(request: Request) {
