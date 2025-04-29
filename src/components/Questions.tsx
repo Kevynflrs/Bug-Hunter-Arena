@@ -1,19 +1,29 @@
 "use client";
 
-import { useState, useEffect, forwardRef } from "react";
-import Reponses from './Reponses';
-import { getSocket } from "@/socket";
+import { useState, useEffect, forwardRef, useRef } from "react";
 
-const socket = getSocket();
+interface QuestionData {
+  theme: string;
+  niveau: string;
+  question: string;
+  correction: string;
+  explication: string;
+}
+import Reponses from './Reponses';
+import { Socket } from "socket.io-client";
+// import { getSocket } from "@/socket";
+
+// const socket = getSocket();
 
 interface QuestionProps {
   onQuestionChange?: (question: QuestionData) => void;
   team: 'red' | 'blue' | 'admin';
   duration?: number;
   difficulty?: string;
+  socket: Socket; // Remplacez 'any' par le type approprié pour votre socket
 }
 
-const Question = forwardRef(({ onQuestionChange, team = 'blue', duration = 260, difficulty }: QuestionProps, ref) => {
+const Question = forwardRef(({ team = 'blue', duration = 260, difficulty, socket }: QuestionProps, ref) => {
   const [question, setQuestion] = useState<QuestionData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +43,7 @@ const Question = forwardRef(({ onQuestionChange, team = 'blue', duration = 260, 
       text: 'text-blue-600',
       button: 'bg-blue-500 hover:bg-blue-600'
     },
-    creator: {
+    admin: {
       bg: 'bg-yellow-100',
       border: 'border-yellow-300',
       text: 'text-yellow-600',
@@ -41,10 +51,22 @@ const Question = forwardRef(({ onQuestionChange, team = 'blue', duration = 260, 
     }
   };
 
-  const colors = teamThemes[team as keyof typeof teamThemes] || teamThemes.blue;
+  const teamRef = useRef(team);
+  const colors = teamThemes[teamRef.current as keyof typeof teamThemes] || teamThemes.blue;
 
   useEffect(() => {
-    fetchNewQuestion();
+    const storedTeam = localStorage.getItem('team');
+    if (storedTeam === 'red' || storedTeam === 'blue' || storedTeam === 'admin') {
+      teamRef.current = storedTeam;
+    } else {
+      teamRef.current = 'blue';
+    }
+    // if (teamRef.current === 'admin') {
+      fetchNewQuestion();
+    // }else {
+    //   setTimeLeft(duration);
+    //   setIsLoading(true);
+    // }
   }, []);
 
   // Timer effect
@@ -54,21 +76,21 @@ const Question = forwardRef(({ onQuestionChange, team = 'blue', duration = 260, 
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
         const newTime = prev - 1;
-        
+
         if (newTime <= 0) {
-          if (team === 'creator') {
+          if (team === 'admin') {
             fetchNewQuestion();
           }
           return duration;
         }
 
         // Si c'est le créateur, synchroniser le timer avec les autres joueurs
-        if (team === 'creator') {
+        if (team === 'admin') {
           const params = new URLSearchParams(window.location.search);
           const connectionId = params.get('id');
-          socket.emit('sync_timer', { 
-            roomId: connectionId, 
-            timeLeft: newTime 
+          socket.emit('sync_timer', {
+            roomId: connectionId,
+            timeLeft: newTime
           });
         }
 
@@ -81,11 +103,18 @@ const Question = forwardRef(({ onQuestionChange, team = 'blue', duration = 260, 
 
   // Écouter les changements de question et de timer
   useEffect(() => {
+
+    if (!socket.connected) {
+      socket.connect(); // Explicitly connect the socket if not already connected
+  }
+
+    console.log("Écoute des événements de socket...");
     socket.on('change_question', (data) => {
       console.log("Nouvelle question reçue:", data);
       setQuestion(data.settings);
       setTimeLeft(duration);
       setHasSubmitted(false);
+      setIsLoading(false);
     });
 
     socket.on('sync_timer', (timeLeft) => {
@@ -102,11 +131,11 @@ const Question = forwardRef(({ onQuestionChange, team = 'blue', duration = 260, 
     setHasSubmitted(true);
     const params = new URLSearchParams(window.location.search);
     const connectionId = params.get('id');
-    
+
     if (isCorrect) {
       socket.emit('correct_answer', {
         roomId: connectionId,
-        team: team
+        team: teamRef.current
       });
     }
   };
@@ -116,7 +145,7 @@ const Question = forwardRef(({ onQuestionChange, team = 'blue', duration = 260, 
       setIsLoading(true);
       setError(null);
       setHasSubmitted(false);
-      
+
       const params = new URLSearchParams(window.location.search);
       const languages = params.get('languages') || '';
       const connectionId = params.get('id');
@@ -124,7 +153,9 @@ const Question = forwardRef(({ onQuestionChange, team = 'blue', duration = 260, 
         languages,
         ...(difficulty && { difficulty })
       }).toString();
-      
+
+
+
       const response = await fetch(`/api/getQuestion?${queryParams}`);
       const data = await response.json();
 
@@ -135,12 +166,11 @@ const Question = forwardRef(({ onQuestionChange, team = 'blue', duration = 260, 
       setQuestion(data.question);
       setTimeLeft(duration);
 
-      if (team === 'creator') {
-        socket.emit('change_question', {
-          roomId: connectionId,
-          settings: data.question
-        });
-      }
+      socket.emit('change_question', {
+        roomId: connectionId,
+        settings: data.question
+      });
+
     } catch (error) {
       console.error('Error:', error);
       setError(error instanceof Error ? error.message : 'Loading error');
@@ -166,7 +196,7 @@ const Question = forwardRef(({ onQuestionChange, team = 'blue', duration = 260, 
               <span className="ml-4">Temps restant : {timeLeft}s</span>
             </p>
           </div>
-          {team === 'creator' && (
+          {team === 'admin' && (
             <button
               onClick={fetchNewQuestion}
               className={`px-4 py-2 rounded text-white ${colors.button}`}
@@ -178,7 +208,7 @@ const Question = forwardRef(({ onQuestionChange, team = 'blue', duration = 260, 
         <pre className="bg-gray-100 p-4 rounded-md text-sm text-gray-800 font-mono whitespace-pre-wrap">
           {question.question}
         </pre>
-        {team === 'creator' && (
+        {team === 'admin' && (
           <div className="mt-4 p-4 rounded border">
             <div className="space-y-4">
               <div>
@@ -194,7 +224,7 @@ const Question = forwardRef(({ onQuestionChange, team = 'blue', duration = 260, 
         )}
       </div>
 
-      {question && team !== 'creator' && (
+      {question && team !== 'admin' && (
         <Reponses
           correction={question.correction}
           explication={question.explication}
@@ -210,3 +240,4 @@ const Question = forwardRef(({ onQuestionChange, team = 'blue', duration = 260, 
 Question.displayName = 'Question';
 
 export default Question;
+

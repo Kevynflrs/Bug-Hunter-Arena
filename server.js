@@ -84,33 +84,7 @@ app.prepare().then(async () => {
         // Notify other users in the room that a new user has joined
         socket.to(roomId).emit('user_joined', { name, sessionID, team });
       });
-
-      // socket.on('join_room', async (roomId, name, sessionID) => {
-      //   console.log(`User ${socket.id} joining room: ${roomId}`);
-      //   socket.join(roomId);
-
-      //   console.log(`User ${name} with session ID ${sessionID} joined room: ${roomId}`);
-
-      //   // Notify the user that they have joined the room
-      //   socket.emit('room_joined', roomId);
-
-      //   // Notify other users in the room that a new user has joined
-      //   socket.to(roomId).emit('user_joined', name, sessionID);
-
-      //   // Handle team selection
-      //   socket.on('choose_team', (team) => {
-      //     if (team === 'red' || team === 'blue') {
-      //       console.log(`User ${name} chose team: ${team} in room: ${roomId}`);
-
-      //       // Notify all users in the room about the team choice
-      //       io.to(roomId).emit('team_chosen', { sessionID: sessionID, team });
-      //     } else {
-      //       console.log(`Invalid team choice by user ${sessionID}: ${team}`);
-      //       socket.emit('invalid_team', 'Please choose either "red" or "blue".');
-      //     }
-      //   });
-      // });
-
+ 
       const teams = {
         red: new Set(),
         blue: new Set(),
@@ -123,8 +97,6 @@ app.prepare().then(async () => {
           socket.emit('invalid_team', 'Invalid team selected.');
           return;
         }
-
-
 
 
         // Remove user from all other teams

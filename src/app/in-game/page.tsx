@@ -12,7 +12,7 @@ export default function InGamePage() {
   const searchParams = useSearchParams();
   const questionRef = useRef(null);
   const [currentQuestion, setCurrentQuestion] = useState(null);
-  const [userTeam, setUserTeam] = useState<'red' | 'blue' | 'creator'>('blue');
+  const [userTeam, setUserTeam] = useState<'red' | 'blue' | 'admin'>('blue');
   const [showVictoryPopup, setShowVictoryPopup] = useState(false);
   const [winningTeam, setWinningTeam] = useState<'red' | 'blue' | null>(null);
   
@@ -24,7 +24,7 @@ export default function InGamePage() {
   const [teams, setTeams] = useState({
     blue: [] as { name: string }[],
     red: [] as { name: string }[],
-    creator: [] as { name: string }[]
+    admin: [] as { name: string }[]
   });
 
   const handleReturnToRoom = () => {
@@ -51,11 +51,13 @@ export default function InGamePage() {
 
       if (connectionId && name && sessionID && storedTeam) {
         socket.emit('join_room', connectionId, name, sessionID, storedTeam);
-        setUserTeam(storedTeam === 'admin' ? 'creator' : storedTeam as 'red' | 'blue' | 'creator');
+        if (storedTeam === 'red' || storedTeam === 'blue' || storedTeam === 'admin') {
+          setUserTeam(storedTeam);
+        }
 
         socket.on('user_joined', (data) => {
           setTeams(prev => {
-            const team = data.team === 'admin' ? 'creator' : data.team;
+            const team = data.team === 'admin';
             if (team && prev[team] && !prev[team].some(p => p.name === data.name)) {
               return {
                 ...prev,
@@ -76,7 +78,7 @@ export default function InGamePage() {
           const newTeams = {
             blue: [] as { name: string }[],
             red: [] as { name: string }[],
-            creator: [] as { name: string }[]
+            admin: [] as { name: string }[]
           };
 
           uniquePlayers.forEach((team, name) => {
@@ -85,7 +87,7 @@ export default function InGamePage() {
             } else if (team === 'blue') {
               newTeams.blue.push({ name });
             } else if (team === 'admin') {
-              newTeams.creator.push({ name });
+              newTeams.admin.push({ name });
             }
           });
 
@@ -141,11 +143,10 @@ export default function InGamePage() {
       {/* Zone centrale avec la question */}
       <div className="flex-1 flex flex-col items-center justify-center p-6">
         <Question 
-          ref={questionRef}
-          onQuestionChange={setCurrentQuestion}
           team={userTeam}
           duration={Number(searchParams.get('duration')) || 260}
           difficulty={searchParams.get('difficulty') || undefined}
+          socket={socket}
         />
       </div>
 
@@ -171,7 +172,7 @@ export default function InGamePage() {
             <h2 className={`text-2xl font-bold mb-4 ${
               winningTeam === 'blue' ? 'text-blue-500' : 'text-red-500'
             }`}>
-              L'équipe {winningTeam === 'blue' ? 'Bleue' : 'Rouge'} a gagné !
+              L&apos;équipe {winningTeam === 'blue' ? 'Bleue' : 'Rouge'} a gagné !
             </h2>
             <button
               onClick={handleReturnToRoom}
@@ -184,28 +185,4 @@ export default function InGamePage() {
       )}
     </div>
   );
-}
-
-function getTeamColors(team: 'red' | 'blue' | 'creator') {
-  const teamThemes = {
-    red: {
-      bg: 'bg-red-100',
-      border: 'border-red-300',
-      text: 'text-red-600',
-      button: 'bg-red-500 hover:bg-red-600'
-    },
-    blue: {
-      bg: 'bg-blue-100',
-      border: 'border-blue-300',
-      text: 'text-blue-600',
-      button: 'bg-blue-500 hover:bg-blue-600'
-    },
-    creator: {
-      bg: 'bg-yellow-100',
-      border: 'border-yellow-300',
-      text: 'text-yellow-600',
-      button: 'bg-yellow-500 hover:bg-yellow-600'
-    }
-  };
-  return teamThemes[team];
 }

@@ -1,6 +1,7 @@
 "use client"; // If using the Next.js App Router
 import React, { useEffect, useState } from "react";
 import { redirect } from "next/navigation";
+import Image from "next/image";
 
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
@@ -313,10 +314,12 @@ export default function Page() {
                         }
                     }}
                 >
-                    <img
+                    <Image
                         src="/assets/img/copy.png"
                         alt="Copy"
                         className="w-6 h-6 cursor-pointer"
+                        width={24}
+                        height={24}
                     />
                 </button>
             </div>
@@ -337,10 +340,12 @@ export default function Page() {
                                 title="Retourner à l'accueil"
                                 onClick={goHome}
                             >
-                                <img
+                                <Image
                                     src="/assets/img/return.png"
                                     alt="Return"
                                     className="w-7 h-7"
+                                    width={28}
+                                    height={28}
                                 />
                             </button>
                         </div>
@@ -358,10 +363,12 @@ export default function Page() {
                         </div>
                         {teamBlue.map((user, index) => (
                             <div key={index} className="flex items-center space-x-2 mb-2">
-                                <img
+                                <Image
                                     src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
                                     alt="profile"
                                     className="w-6 h-6 rounded-full bg-gray-300 border"
+                                    width={24} // Add width
+                                    height={24} // Add height
                                 />
                                 <span>{user}</span>
                             </div>
@@ -375,10 +382,12 @@ export default function Page() {
                         </div>
                         {teamRed.map((user, index) => (
                             <div key={index} className="flex items-center space-x-2 mb-2">
-                                <img
+                                <Image
                                     src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
                                     alt="profile"
                                     className="w-6 h-6 rounded-full bg-gray-300 border"
+                                    width={24} // Add width
+                                    height={24} // Add height
                                 />
                                 <span>{user}</span>
                             </div>
@@ -393,10 +402,12 @@ export default function Page() {
                             <div className="flex items-center mb-4 space-x-2">
                                 <h2 className="text-xl font-semibold">Maîtres du Jeu</h2>
                                 <span role="img" aria-label="Game Master" className="text-2xl">
-                                    <img
+                                    <Image
                                         src="/assets/img/mvp.png"
                                         alt="Return"
                                         className="w-7 h-7"
+                                        width={28}
+                                        height={28}
                                     />
                                 </span>
                             </div>
@@ -406,7 +417,13 @@ export default function Page() {
                         <div className="flex items-center space-x-2 mb-2">
                             {teamAdmin.map((user, index) => (
                                 <div key={index} className="flex items-center space-x-2 mb-2">
-                                    <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="profile" className="w-6 h-6 rounded-full bg-gray-300 border" />
+                                    <Image
+                                        src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
+                                        alt="profile"
+                                        className="w-6 h-6 rounded-full bg-gray-300 border"
+                                        width={24} // Add width
+                                        height={24} // Add height
+                                    />
                                     <span>{user}</span>
                                 </div>
                             ))}
@@ -425,7 +442,13 @@ export default function Page() {
                         <div className="flex items-center space-x-2 mb-2">
                             {teamSpectator.map((user, index) => (
                                 <div key={index} className="flex items-center space-x-2 mb-2">
-                                    <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="profile" className="w-6 h-6 rounded-full bg-gray-300 border" />
+                                    <Image
+                                        src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
+                                        alt="profile"
+                                        className="w-6 h-6 rounded-full bg-gray-300 border"
+                                        width={24} // Add width
+                                        height={24} // Add height
+                                    />
                                     <span>{user}</span>
                                 </div>
                             ))}
@@ -435,10 +458,12 @@ export default function Page() {
                     <div className="rounded-2xl border-2 border-gray-200 p-4">
                         <div className="flex items-center mb-4 space-x-2">
                             <h2 className="text-xl font-semibold">Paramètre de Jeu</h2>
-                            <img
+                            <Image
                                 src="/assets/img/setting.png"
                                 alt="Settings"
                                 className="w-7 h-7"
+                                width={28}
+                                height={28}
                             />
                         </div>
                         {/* Gray line */}
@@ -528,10 +553,12 @@ export default function Page() {
                                             onClick={handleStartGame}
                                         >
                                             <span className="mr-2">Lancer la partie</span>
-                                            <img
+                                            <Image
                                                 src="/assets/img/play.png"
                                                 alt="Lancer la partie"
                                                 className="w-6 h-6"
+                                                width={24}
+                                                height={24}
                                             />
                                         </button>
 
@@ -576,10 +603,12 @@ export default function Page() {
                                             }}
                                         >
                                             <span className="mr-2">Supprimer la partie</span>
-                                            <img
+                                            <Image
                                                 src="/assets/img/trash.png"
                                                 alt="Supprimer la partie"
-                                                className="w-6 h-6 "
+                                                className="w-6 h-6"
+                                                width={24}
+                                                height={24}
                                             />
                                         </button>
                                     </div>
