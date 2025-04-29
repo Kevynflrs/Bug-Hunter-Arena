@@ -2,18 +2,23 @@
 
 import { useState, useEffect, forwardRef } from "react";
 import Reponses from './Reponses';
+import { getSocket } from "@/socket";
+
+const socket = getSocket();
 
 interface QuestionProps {
   onQuestionChange?: (question: QuestionData) => void;
-  team: 'red' | 'blue' | 'creator';  // Rendre team obligatoire
+  team: 'red' | 'blue' | 'admin';
+  duration?: number;
+  difficulty?: string;
 }
 
-const Question = forwardRef(({ onQuestionChange, team = 'blue' }: QuestionProps, ref) => {
+const Question = forwardRef(({ onQuestionChange, team = 'blue', duration = 260, difficulty }: QuestionProps, ref) => {
   const [question, setQuestion] = useState<QuestionData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  console.log('Current team:', team); // Pour déboguer
+  const [timeLeft, setTimeLeft] = useState(duration);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
 
   const teamThemes = {
     red: {
@@ -36,61 +41,115 @@ const Question = forwardRef(({ onQuestionChange, team = 'blue' }: QuestionProps,
     }
   };
 
-  const colors = teamThemes[team];
-
-  const fetchNewQuestion = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      // Récupérer les langages depuis l'URL
-      const params = new URLSearchParams(window.location.search);
-      const languages = params.get('languages') || '';
-      
-      const response = await fetch(`/api/getQuestion?languages=${languages}`, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`Erreur HTTP: ${response.status}`);
-      }
-
-      const data = await response.json();
-      setQuestion(data.question);
-    } catch (error) {
-      console.error('Erreur:', error);
-      setError(error instanceof Error ? error.message : 'Erreur de chargement');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleAnswerSubmit = (isCorrect: boolean) => {
-    if (isCorrect) {
-      const newScore = score + 1;
-      setScore(newScore);
-      
-      if (newScore >= 5) {
-        const params = new URLSearchParams(window.location.search);
-        const roomId = params.get('id');
-        const nickname = params.get('nickname');
-        redirect(`/room?id=${roomId}&nickname=${nickname}`);
-        return;
-      }
-    }
-    fetchNewQuestion();
-  };
+  const colors = teamThemes[team as keyof typeof teamThemes] || teamThemes.blue;
 
   useEffect(() => {
     fetchNewQuestion();
   }, []);
 
-  // Utiliser colors en s'assurant qu'il existe
-  if (isLoading) return <div className={colors?.text || 'text-gray-600'}>Chargement...</div>;
+  // Timer effect
+  useEffect(() => {
+    if (!question) return;
+
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => {
+        const newTime = prev - 1;
+        
+        if (newTime <= 0) {
+          if (team === 'creator') {
+            fetchNewQuestion();
+          }
+          return duration;
+        }
+
+        // Si c'est le créateur, synchroniser le timer avec les autres joueurs
+        if (team === 'creator') {
+          const params = new URLSearchParams(window.location.search);
+          const connectionId = params.get('id');
+          socket.emit('sync_timer', { 
+            roomId: connectionId, 
+            timeLeft: newTime 
+          });
+        }
+
+        return newTime;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [question, team, duration]);
+
+  // Écouter les changements de question et de timer
+  useEffect(() => {
+    socket.on('change_question', (data) => {
+      console.log("Nouvelle question reçue:", data);
+      setQuestion(data.settings);
+      setTimeLeft(duration);
+      setHasSubmitted(false);
+    });
+
+    socket.on('sync_timer', (timeLeft) => {
+      setTimeLeft(timeLeft);
+    });
+
+    return () => {
+      socket.off('change_question');
+      socket.off('sync_timer');
+    };
+  }, [duration]);
+
+  const handleAnswerSubmit = (isCorrect: boolean) => {
+    setHasSubmitted(true);
+    const params = new URLSearchParams(window.location.search);
+    const connectionId = params.get('id');
+    
+    if (isCorrect) {
+      socket.emit('correct_answer', {
+        roomId: connectionId,
+        team: team
+      });
+    }
+  };
+
+  const fetchNewQuestion = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      setHasSubmitted(false);
+      
+      const params = new URLSearchParams(window.location.search);
+      const languages = params.get('languages') || '';
+      const connectionId = params.get('id');
+      const queryParams = new URLSearchParams({
+        languages,
+        ...(difficulty && { difficulty })
+      }).toString();
+      
+      const response = await fetch(`/api/getQuestion?${queryParams}`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(`HTTP Error: ${response.status}`);
+      }
+
+      setQuestion(data.question);
+      setTimeLeft(duration);
+
+      if (team === 'creator') {
+        socket.emit('change_question', {
+          roomId: connectionId,
+          settings: data.question
+        });
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      setError(error instanceof Error ? error.message : 'Loading error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isLoading) return <div className={colors.text}>Chargement...</div>;
   if (error) return <div className="text-red-500">{error}</div>;
   if (!question) return null;
 
@@ -99,38 +158,39 @@ const Question = forwardRef(({ onQuestionChange, team = 'blue' }: QuestionProps,
       <div className={`p-6 bg-white rounded-lg shadow-md mb-6 border ${colors.border}`}>
         <div className="flex justify-between items-center mb-4">
           <div>
-            <h2 className="text-lg font-bold text-gray-800">Thème : {question?.theme}</h2>
-            <p className="text-sm text-gray-600">Niveau : {question?.niveau}</p>
+            <h2 className="text-lg font-bold text-gray-800">
+              {question?.theme ? `Thème : ${question.theme}` : ''}
+            </h2>
+            <p className="text-sm text-gray-600">
+              {question?.niveau ? `Niveau : ${question.niveau}` : ''}
+              <span className="ml-4">Temps restant : {timeLeft}s</span>
+            </p>
           </div>
           {team === 'creator' && (
             <button
-              onClick={() => fetchNewQuestion()}
+              onClick={fetchNewQuestion}
               className={`px-4 py-2 rounded text-white ${colors.button}`}
             >
               Question suivante
             </button>
           )}
         </div>
-        {question && (
-          <>
-            <pre className="bg-gray-100 p-4 rounded-md text-sm text-gray-800 font-mono whitespace-pre-wrap">
-              {question.question}
-            </pre>
-            {team === 'creator' && (
-              <div className={`mt-4 p-4 rounded border ${colors.bg} ${colors.border}`}>
-                <div className="space-y-4">
-                  <div>
-                    <p className="font-bold mb-2">Correction :</p>
-                    <pre className="bg-white p-2 rounded">{question.correction}</pre>
-                  </div>
-                  <div>
-                    <p className="font-bold mb-2">Explication :</p>
-                    <pre className="bg-white p-2 rounded whitespace-pre-wrap">{question.explication}</pre>
-                  </div>
-                </div>
+        <pre className="bg-gray-100 p-4 rounded-md text-sm text-gray-800 font-mono whitespace-pre-wrap">
+          {question.question}
+        </pre>
+        {team === 'creator' && (
+          <div className="mt-4 p-4 rounded border">
+            <div className="space-y-4">
+              <div>
+                <p className="font-bold mb-2">Correction :</p>
+                <pre className="bg-white p-2 rounded">{question.correction}</pre>
               </div>
-            )}
-          </>
+              <div>
+                <p className="font-bold mb-2">Explication :</p>
+                <pre className="bg-white p-2 rounded whitespace-pre-wrap">{question.explication}</pre>
+              </div>
+            </div>
+          </div>
         )}
       </div>
 
@@ -140,6 +200,7 @@ const Question = forwardRef(({ onQuestionChange, team = 'blue' }: QuestionProps,
           explication={question.explication}
           onAnswerSubmit={handleAnswerSubmit}
           teamColors={colors}
+          isDisabled={hasSubmitted}
         />
       )}
     </div>

@@ -61,18 +61,21 @@ app.prepare().then(async () => {
         // });
       });
 
-      // Handle room joining
-      socket.on('join_room', async (roomId, name, sessionID, team) => {
-        console.log(`User ${socket.id} joining room: ${roomId}`);
-        socket.join(roomId);
+      socket.on('new_question', ({ question, roomId }) => {
+        // Diffuser la nouvelle question à tous les joueurs de la room
+        io.to(roomId).emit('question_updated', question);
+      });
 
-        // Get all sockets in the room
+      // Handle room joining
+      socket.on('join_room', async (roomId, name, sessionID, team) => { // Add async here
+        socket.join(roomId);
 
         socket.data.user = {
           sessionID,
           name,
           team,
         };
+
         const socketsInRoom = await io.in(roomId).fetchSockets();
         const playersInRoom = socketsInRoom.map((s) => s.data?.user);
 
@@ -80,8 +83,6 @@ app.prepare().then(async () => {
         socket.emit('room_joined', playersInRoom);
         // Notify other users in the room that a new user has joined
         socket.to(roomId).emit('user_joined', { name, sessionID, team });
-
-        // Store the player's name in the socket's data for future reference
       });
 
       // socket.on('join_room', async (roomId, name, sessionID) => {
@@ -151,6 +152,35 @@ app.prepare().then(async () => {
 
       socket.on('disconnect', (reason) => {
         console.log(`User disconnected: ${socket.id}, Reason: ${reason}`);
+      });
+
+      socket.on('start_game', (roomId, settings) => {
+        console.log('Game starting in room:', roomId, 'with settings:', settings);
+        io.to(roomId).emit('game_starting', settings);
+      });
+
+      socket.on('change_question', ({ roomId, settings }) => {
+        io.to(roomId).emit('change_question', { settings });
+      });
+
+      socket.on('sync_timer', ({ roomId, timeLeft }) => {
+        socket.to(roomId).emit('sync_timer', timeLeft);
+      });
+
+      socket.on('correct_answer', ({ roomId, team }) => {
+        io.to(roomId).emit('update_score', { team });
+      });
+
+      socket.on('return_to_room', ({ roomId, team }) => {
+        socket.join(roomId);
+        socket.data.team = team;
+        
+        // Notifier les autres joueurs du retour
+        socket.to(roomId).emit('user_joined', {
+          name: socket.data.user?.name,
+          team: team,
+          sessionID: socket.data.user?.sessionID
+        });
       });
     });
 
