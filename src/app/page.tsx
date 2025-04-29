@@ -5,7 +5,6 @@ import { useState, useEffect, useMemo } from "react";
 import Image from 'next/image';
 import handleRoomCreation from "@/components/handle_room_creation";
 import { useRouter } from 'next/navigation';
-import Toast from '@/components/Toast';
 
 const App = () => {
   const avatarList = useMemo(() => [
@@ -32,15 +31,10 @@ const App = () => {
     "Isidore",
   ];
 
-  const [avatar, setAvatar] = useState("");
+  const [avatar, setAvatar] = useState(""); // Initialiser avec une chaîne vide
   const [nickname, setNickname] = useState("");
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [roomCode, setRoomCode] = useState("");
-  const [toast, setToast] = useState<{ message: string; type?: "error" | "success" | "info"; visible: boolean }>({
-    message: "",
-    type: undefined,
-    visible: false,
-  });
 
   const router = useRouter();
 
@@ -59,17 +53,16 @@ const App = () => {
     setIsPopupOpen(true);
   };
   
-  const handleRoomCodeSubmit = async () => {
+    const handleRoomCodeSubmit = async () => {
     if (!roomCode) {
-      setToast({ message: "Veuillez entrer un code de salle.", type: "error", visible: true });
+      alert("Veuillez entrer un code de salle.");
       return;
     }
   
     try {
       const response = await fetch(`/api/joinGame?id=${roomCode}`);
       if (!response.ok) {
-        setToast({ message: "La salle n'existe pas.", type: "error", visible: true });
-        return;
+        throw new Error("La salle n'existe pas.");
       }
   
       const data = await response.json();
@@ -79,8 +72,9 @@ const App = () => {
       setRoomCode(connectionId);
   
       router.push(`/waitingroom?id=${connectionId}&nickname=${nickname || "user"}`);
-    } catch {
-      setToast({ message: "Impossible de rejoindre la salle. Vérifiez le code et réessayez.", type: "error", visible: true });
+    } catch (error) {
+      console.error("Erreur lors de la tentative de rejoindre la salle :", error);
+      alert("Impossible de rejoindre la salle. Vérifiez le code et réessayez.");
     }
   };
 
@@ -88,6 +82,12 @@ const App = () => {
     setIsPopupOpen(false);
     setRoomCode("");
   };
+
+
+  // const handleRoomCodeSubmit = () => {
+  //   setIsPopupOpen(false);
+  //   redirect(`/room?id=${roomCode}`);
+  // };
 
   const handleCreateRoom = async () => {
     // Si aucun pseudo n'est fourni, attribuer un nom aléatoire
@@ -99,15 +99,6 @@ const App = () => {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-6">
-      {/* Toast */}
-      {toast.visible && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast({ ...toast, visible: false })}
-        />
-      )}
-
       {/* Header */}
       <header className="flex flex-col items-center mb-6">
         <Image src="/assets/img/logo_bug_hunter.png" alt="Bug Hunter Arena Logo" width={150} height={200} />
