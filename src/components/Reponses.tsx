@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 interface ReponsesProps {
   correction: string;
@@ -10,22 +10,13 @@ interface ReponsesProps {
     text: string;
     button: string;
   };
-  isDisabled?: boolean;
+  isGameMaster?: boolean;
 }
 
-const Reponses = ({ correction, explication, onAnswerSubmit, teamColors, isDisabled = false }: ReponsesProps) => {
+const Reponses = ({ correction, explication, onAnswerSubmit, teamColors, isGameMaster = false }: ReponsesProps) => {
   const [userAnswer, setUserAnswer] = useState('');
   const [showCorrection, setShowCorrection] = useState(false);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
-
-  // Réinitialiser quand isDisabled change (nouvelle question)
-  useEffect(() => {
-    if (!isDisabled) {
-      setUserAnswer('');
-      setShowCorrection(false);
-      setIsCorrect(null);
-    }
-  }, [isDisabled]);
 
   const handleSubmit = () => {
     const correct = userAnswer.trim().toLowerCase() === correction.trim().toLowerCase();
@@ -42,17 +33,15 @@ const Reponses = ({ correction, explication, onAnswerSubmit, teamColors, isDisab
         className={`w-full p-4 border rounded-md mb-4 ${teamColors.border}`}
         placeholder="Entrez votre réponse ici..."
         rows={6}
-        disabled={showCorrection || isDisabled}
+        disabled={showCorrection}
       />
 
       <button
         onClick={handleSubmit}
-        className={`w-full py-3 px-6 rounded-md font-semibold ${teamColors.button} text-white hover:opacity-90 ${
-          (showCorrection || isDisabled) ? 'opacity-50 cursor-not-allowed' : ''
-        }`}
-        disabled={showCorrection || isDisabled}
+        className={`w-full py-3 px-6 rounded-md font-semibold ${teamColors.button} text-white hover:opacity-90`}
+        disabled={showCorrection}
       >
-        Soumettre
+        {isGameMaster ? 'Question suivante' : 'Soumettre'}
       </button>
 
       {showCorrection && (

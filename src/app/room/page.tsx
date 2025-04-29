@@ -12,66 +12,45 @@ const socket = getSocket();
 const UUID_EXPIRATION_TIME = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 export default function Page() {
-    interface IRoom extends Document {
-        scores_a: number;
-        scores_b: number;
-        name: string;
-        connectionId: number;
-    }
+  interface IRoom extends Document {
+    scores_a: number;
+    scores_b: number;
+    name: string;
+    connectionId: number;
+  }
 
-    const [room, setRoom] = useState<IRoom | null>(null);
-    const searchParams = useSearchParams();
-    const connectionId = searchParams.get("id");
-    const nickname = searchParams.get("nickname");
-    const router = useRouter();
-    const [name, setName] = useState<string>(nickname || ""); // Initialize with an empty string or a default value
+  const [room, setRoom] = useState<IRoom | null>(null);
+  const searchParams = useSearchParams();
+  const connectionId = searchParams.get("id");
+  const nickname = searchParams.get("nickname");
+  const router = useRouter();
+  const [name, setName] = useState<string>(nickname || ""); // Initialize with an empty string or a default value
 
-    const [teamRed, setTeamRed] = useState<string[]>([]);
-    const [teamBlue, setTeamBlue] = useState<string[]>([]);
-    const [teamSpectator, setTeamSpectator] = useState<string[]>([]);
-    const [teamAdmin, setTeamAdmin] = useState<string[]>([]);
-    const [error, setError] = useState<string | null>(null);
-    const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
-    const [difficulte, setDifficulte] = useState<number | null>(null);
-    const [duree, setDuree] = useState<number>(260);
+  const [error, setError] = useState<string | null>(null);
 
-    const goHome = () => {
-        redirect("/");
-    };
+  const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
+  const [difficulte, setDifficulte] = useState<number>(1);
+  const [duree, setDuree] = useState<number>(260);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastType, setToastType] = useState<"success" | "error" | "info">(
+    "info"
+  );
 
-    const handleLanguageToggle = (lang: string) => {
-        setSelectedLanguages(prev => 
-            prev.includes(lang) 
-                ? prev.filter(l => l !== lang)
-                : [...prev, lang]
-        );
-    };
+  const [teamRed, setTeamRed] = useState<string[]>([]);
+  const [teamBlue, setTeamBlue] = useState<string[]>([]);
+  const [teamSpectator, setTeamSpectator] = useState<string[]>([]);
+  const [teamAdmin, setTeamAdmin] = useState<string[]>([]);
 
-    const handleStartGame = () => {
-        if (selectedLanguages.length === 0) {
-            setError("Veuillez sélectionner au moins un langage");
-            return;
-        }
-        
-        const gameSettings = {
-            languages: selectedLanguages.join(','),
-            duration: duree.toString(),
-            difficulty: difficulte?.toString(),
-        };
-
-        // Émettre l'événement start_game à tous les joueurs
-        socket.emit('start_game', connectionId, gameSettings);
-        
-        // Rediriger le maître du jeu vers la page de jeu
-        const queryParams = new URLSearchParams({
-            languages: selectedLanguages.join(','),
-            id: connectionId || '',
-            duration: duree.toString(),
-            ...(difficulte && { difficulty: difficulte.toString() })
-        }).toString();
-        
-        router.push(`/in-game?${queryParams}`);
-    };
+  const showToastMessage = (
+    message: string,
+    type: "success" | "error" | "info"
+  ) => {
+    setToastMessage(message);
+    setToastType(type);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000); // Cache le toast après 3 secondes
+  };
 
     function getLanguages() {
         return [
@@ -81,6 +60,20 @@ export default function Page() {
             { id: "Csharp", label: "C#" },
             { id: "PHP", label: "PHP" },
         ];
+  const goHome = () => {
+    redirect("/");
+  };
+
+  const handleLanguageToggle = (lang: string) => {
+    setSelectedLanguages((prev) =>
+      prev.includes(lang) ? prev.filter((l) => l !== lang) : [...prev, lang]
+    );
+  };
+
+  const handleStartGame = () => {
+    if (selectedLanguages.length === 0) {
+      setError("Veuillez sélectionner au moins un langage");
+      return;
     }
 
     useEffect(() => {
@@ -477,7 +470,9 @@ export default function Page() {
                                                 type="radio"
                                                 name="difficulty"
                                                 value={level}
-                                                checked={String(difficulte) === level || (difficulte === null && level === "all")}
+                                                
+                                              
+                                              ked={String(difficulte) === level || (difficulte === null && level === "all")}
                                                 onChange={(e) => {
                                                     if (e.target.value === "all") {
                                                         setDifficulte(null);
@@ -586,6 +581,7 @@ export default function Page() {
                                 </div>
                             </div>
                         </div>
+                      ))}
                     </div>
                 </div>
             </div>
