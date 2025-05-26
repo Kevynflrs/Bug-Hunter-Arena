@@ -1,5 +1,4 @@
-import pkg from 'mongoose';
-const { Schema, model, models } = pkg;
+import mongoose, { Document } from 'mongoose';
 
 interface IQuestion extends Document {
   theme: string;
@@ -9,14 +8,14 @@ interface IQuestion extends Document {
   explication: string;
 }
 
-const QuestionSchema = new Schema<IQuestion>({
-  theme: { type: String, required: true },
-  niveau: { type: String, required: true },
-  question: { type: String, required: true },
-  correction: { type: String, required: true },
-  explication: { type: String, required: true },
-});
-
-const Question = models.Question || model<IQuestion>('Question', QuestionSchema);
+// Vérifie si on est côté serveur avant de créer le modèle
+const Question = (mongoose.models && mongoose.models.Question) || 
+  (typeof window === 'undefined' ? mongoose.model<IQuestion>('Question', new mongoose.Schema({
+    theme: { type: String, required: true },
+    niveau: { type: String, required: true },
+    question: { type: String, required: true },
+    correction: { type: String, required: true },
+    explication: { type: String, required: true },
+  })) : null);
 
 export default Question;

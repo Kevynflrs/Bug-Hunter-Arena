@@ -1,38 +1,32 @@
 import { NextResponse } from "next/server";
+import mongoose from "mongoose";
 import Room from "@/models/Room";
+import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(request: Request) {
   try {
-    const { name } = await request.json(); // Retrieve the name from the request body
+    const { name } = await request.json();
 
-    function generateRoomId(): string {
-      const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-      let id = "";
-      for (let i = 0; i < 6; i++) {
-        id += chars.charAt(Math.floor(Math.random() * chars.length));
-      }
-      return id;
+    if (!mongoose.connection.readyState) {
+      await mongoose.connect(process.env.MONGODB_URI!);
     }
 
-    let connectionId: string = "";
-    let exists = true;
-
-    while (exists) {
-      connectionId = generateRoomId();
-      exists = (await Room.exists({ connectionId })) !== null;
-    }
-
-    const newRoom = new Room({
+    const room = new Room({
+      name,
+      connectionId: uuidv4(),
       scores_a: 0,
       scores_b: 0,
-      name: name,
-      connectionId: connectionId,
+      createdAt: new Date()
     });
 
-    await newRoom.save();
-    return NextResponse.json({ message: "Room créée avec succès !", connectionId }, { status: 201 });
+    await room.save();
+    
+    return NextResponse.json({ connectionId: room.connectionId });
   } catch (error) {
-    console.error(error);
-    return NextResponse.json({ message: "Erreur lors de la création" }, { status: 500 });
+    console.error("Erreur lors de la création de la room:", error);
+    return NextResponse.json(
+      { error: "Erreur lors de la création de la room" },
+      { status: 500 }
+    );
   }
 }

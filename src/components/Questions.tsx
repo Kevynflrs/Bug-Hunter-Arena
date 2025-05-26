@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, forwardRef } from "react";
+import { useSearchParams } from 'next/navigation'; // Ajout de cette ligne
 import Reponses from './Reponses';
 import { getSocket } from "@/socket";
 
@@ -8,12 +9,15 @@ const socket = getSocket();
 
 interface QuestionProps {
   onQuestionChange?: (question: QuestionData) => void;
-  team: 'red' | 'blue' | 'admin';
+  team: 'red' | 'blue' | 'creator';
   duration?: number;
   difficulty?: string;
 }
 
 const Question = forwardRef(({ onQuestionChange, team = 'blue', duration = 260, difficulty }: QuestionProps, ref) => {
+  const searchParams = useSearchParams(); // Ajout de cette ligne
+  const connectionId = searchParams.get('id'); // Récupération du connectionId
+  
   const [question, setQuestion] = useState<QuestionData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -43,49 +47,72 @@ const Question = forwardRef(({ onQuestionChange, team = 'blue', duration = 260, 
 
   const colors = teamThemes[team as keyof typeof teamThemes] || teamThemes.blue;
 
-  useEffect(() => {
-    fetchNewQuestion();
-  }, []);
-
-  // Timer effect
-  useEffect(() => {
-    if (!question) return;
-
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        const newTime = prev - 1;
-        
-        if (newTime <= 0) {
-          if (team === 'creator') {
-            fetchNewQuestion();
-          }
-          return duration;
-        }
-
-        // Si c'est le créateur, synchroniser le timer avec les autres joueurs
-        if (team === 'creator') {
-          const params = new URLSearchParams(window.location.search);
-          const connectionId = params.get('id');
-          socket.emit('sync_timer', { 
-            roomId: connectionId, 
-            timeLeft: newTime 
-          });
-        }
-
-        return newTime;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [question, team, duration]);
-
-  // Écouter les changements de question et de timer
-  useEffect(() => {
-    socket.on('change_question', (data) => {
-      console.log("Nouvelle question reçue:", data);
-      setQuestion(data.settings);
-      setTimeLeft(duration);
+  const fetchNewQuestion = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
       setHasSubmitted(false);
+
+      const response = await fetch('/api/getQuestion', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          roomId: connectionId,
+          languages: searchParams.get('languages'),
+          difficulty
+        })
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Erreur lors de la récupération de la question');
+      }
+
+      setQuestion(prevQuestion => ({
+        ...data.question,
+        key: Math.random() // Ajoute une clé unique pour forcer le re-render
+      }));
+      setTimeLeft(duration);
+
+      if (team === 'creator') {
+        socket.emit('change_question', {
+          roomId: connectionId,
+          settings: data.question
+        });
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      setError(error instanceof Error ? error.message : 'Erreur de chargement');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (team === 'creator') {
+      fetchNewQuestion();
+    }
+
+    socket.on('change_question', (data) => {
+      if (data.settings) {
+        setQuestion(data.settings);
+        setTimeLeft(duration);
+        setHasSubmitted(false);
+        setIsLoading(false);
+        // Réinitialiser la zone de texte
+        const textarea = document.querySelector('textarea');
+        if (textarea) {
+          textarea.value = '';
+        }
+        // Forcer la réinitialisation du composant Reponses
+        setQuestion(prevQuestion => ({
+          ...prevQuestion,
+          key: Math.random() // Ajoute une clé unique pour forcer le re-render
+        }));
+      }
     });
 
     socket.on('sync_timer', (timeLeft) => {
@@ -96,7 +123,27 @@ const Question = forwardRef(({ onQuestionChange, team = 'blue', duration = 260, 
       socket.off('change_question');
       socket.off('sync_timer');
     };
-  }, [duration]);
+  }, [team, duration]);
+
+  // Timer effect
+  useEffect(() => {
+    if (!question) return;
+
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => {
+        const newTime = prev - 1;
+        if (newTime <= 0) {
+          if (team === 'creator') {
+            fetchNewQuestion();
+          }
+          return duration;
+        }
+        return newTime;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [question, duration, team]);
 
   const handleAnswerSubmit = (isCorrect: boolean) => {
     setHasSubmitted(true);
@@ -108,44 +155,16 @@ const Question = forwardRef(({ onQuestionChange, team = 'blue', duration = 260, 
         roomId: connectionId,
         team: team
       });
+
+      // Émettre l'événement de mise à jour des scores
+      socket.emit('update_score', {
+        roomId: connectionId,
+        team: team
+      });
     }
-  };
 
-  const fetchNewQuestion = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      setHasSubmitted(false);
-      
-      const params = new URLSearchParams(window.location.search);
-      const languages = params.get('languages') || '';
-      const connectionId = params.get('id');
-      const queryParams = new URLSearchParams({
-        languages,
-        ...(difficulty && { difficulty })
-      }).toString();
-      
-      const response = await fetch(`/api/getQuestion?${queryParams}`);
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(`HTTP Error: ${response.status}`);
-      }
-
-      setQuestion(data.question);
-      setTimeLeft(duration);
-
-      if (team === 'creator') {
-        socket.emit('change_question', {
-          roomId: connectionId,
-          settings: data.question
-        });
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      setError(error instanceof Error ? error.message : 'Loading error');
-    } finally {
-      setIsLoading(false);
+    if (onQuestionChange && question) {
+      onQuestionChange({ ...question, isCorrect });
     }
   };
 
@@ -196,6 +215,7 @@ const Question = forwardRef(({ onQuestionChange, team = 'blue', duration = 260, 
 
       {question && team !== 'creator' && (
         <Reponses
+          key={question.key} // Ajouter cette ligne
           correction={question.correction}
           explication={question.explication}
           onAnswerSubmit={handleAnswerSubmit}

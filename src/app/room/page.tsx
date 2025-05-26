@@ -220,25 +220,16 @@ export default function Page() {
                 socket.on("room_joined", (playersInRoom) => {
                     console.log("Room joined successfully:", playersInRoom);
 
-                    // Réinitialiser toutes les équipes
+                    // Réinitialise les équipes
                     setTeamRed([]);
                     setTeamBlue([]);
                     setTeamSpectator([]);
                     setTeamAdmin([]);
 
-                    interface Player {
-                        name: string;
-                        team: string;
-                    }
-
-                    // Utiliser un Set pour garder une trace des utilisateurs déjà ajoutés
                     const addedUsers = new Set();
 
-                    playersInRoom.forEach((user: Player) => {
-                        if (addedUsers.has(user.name)) {
-                            return; // Ignorer les utilisateurs en double
-                        }
-
+                    playersInRoom.forEach((user) => {
+                        if (addedUsers.has(user.name)) return;
                         addedUsers.add(user.name);
 
                         switch (user.team) {
@@ -262,14 +253,23 @@ export default function Page() {
 
         const fetchRoom = async () => {
             try {
+                if (!connectionId) {
+                    throw new Error("ID de connexion manquant");
+                }
+
                 const response = await fetch(`/api/getRoomFromId?id=${connectionId}`);
                 if (!response.ok) {
-                    throw new Error("Failed to fetch room data");
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || "Erreur lors de la récupération de la room");
                 }
+
                 const data = await response.json();
-                if (isMounted) setRoom(data); // Only update state if mounted
+                if (isMounted) {
+                    setRoom(data);
+                }
             } catch (error) {
                 console.error("Error fetching room:", error);
+                setError(error instanceof Error ? error.message : "Erreur inconnue");
             }
         };
 
